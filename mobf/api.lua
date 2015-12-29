@@ -115,7 +115,7 @@ function mobf_add_mob(mob)
 				end,
 			})
 
-	mobf.register_mob_item(mob.name,mob.modname,mob.generic.description, mob.generic.itemimage)
+	mobf.register_mob_item(mob)
 
 	--check if a movement pattern was specified
 	if mobf_rtd.movement_patterns[mob.movement.pattern] == nil then

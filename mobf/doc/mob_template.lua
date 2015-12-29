@@ -47,6 +47,9 @@ local mob_template = {
 
 		--! @brief [OPTIONAL] item description OR function all returning a item description of whats the result of a kill
 		kill_result = nil,
+		
+		--! @brief [OPTIONAL] image to use for item instead of using mobname postfixed with _item, set to "mesh" to use 3d mesh as item
+		itemimage = nil
 
 		--! @brief [OPTIONAL] armor groups of mob
 		armor_groups = nil,

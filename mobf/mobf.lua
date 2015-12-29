@@ -960,10 +960,32 @@ end
 --! @param description description to use for mob
 --! @param imagename name of itemimage to use
 -------------------------------------------------------------------------------
-function mobf.register_mob_item(name,modname,description, imagename)
+function mobf.register_mob_item(mob)
+
+	local name = mob.name
+	local modname = mob.modname 
+	local description = mob.generic.description
+	local imagename = mob.generic.itemimage
+	local mesh = nil
+	local meshtexture = nil
+
+	if imagename == "mesh" then
+		for i = 1, #mob.states, 1 do
+			if mob.states[i].name == "default" then
+				if mob.states[i].graphics_3d ~= nil then
+					mesh = mob.states[i].graphics_3d.mesh
+					meshtexture = mob.states[i].graphics_3d.textures[1]
+				end
+				break
+			end
+		end
+	end
+
 	minetest.register_craftitem(modname..":"..name, {
 		description = description,
 		image = imagename or modname.."_"..name.."_item.png",
+		mesh = mesh,
+		meshtexture = meshtexture,
 		on_place = function(item, placer, pointed_thing)
 			if pointed_thing.type == "node" then
 				local pos = pointed_thing.above
