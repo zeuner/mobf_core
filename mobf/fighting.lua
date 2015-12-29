@@ -128,12 +128,6 @@ function fighting.dodamage(entity,attacker, kill_reason)
 
 		mobf_lifebar.del(entity.lifebar)
 
-		local result = entity.data.generic.kill_result
-		if type(entity.data.generic.kill_result) == "function" then
-			result = entity.data.generic.kill_result(entity, attacker)
-		end
-
-
 		--call on kill callback and superseed normal on kill handling
 		if entity.data.generic.on_kill_callback == nil or
 			entity.data.generic.on_kill_callback(entity,attacker) == false
@@ -143,22 +137,8 @@ function fighting.dodamage(entity,attacker, kill_reason)
 				sound.play(mob_pos,entity.data.sound.die);
 			end
 
-			if attacker:is_player() then
-				if type(result) == "table" then
-					for i=1,#result, 1 do
-						if attacker:get_inventory():room_for_item("main", result[i]) then
-							attacker:get_inventory():add_item("main", result[i])
-						end
-					end
-				else
-					if attacker:get_inventory():room_for_item("main", result) then
-						attacker:get_inventory():add_item("main", result)
-					end
-				end
-			else
-				--todo check if spawning a stack is possible
-				minetest.add_item(mob_pos,result)
-			end
+			entity:do_drop(attacker)
+			
 			spawning.remove(entity, kill_reason)
 		else
 			dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name

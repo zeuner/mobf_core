@@ -772,8 +772,9 @@ function mobf.register_entity(name, cur_graphics, mob)
 					mobf_warn_long_fct(starttime,"onactivate_total_" .. self.data.name,"onactivate_total")
 				end,
 
-			getbasepos       = mobf.get_basepos,
+			getbasepos            = mobf.get_basepos,
 			get_persistent_data   = mobf.get_persistent_data,
+			do_drop               = mobf.drop_kill_result,
 			owner            = function(entity) 
 			   if (entity.dynamic_data.spawning.spawner) then
 			      return entity.dynamic_data.spawning.spawner
@@ -1247,4 +1248,77 @@ function mobf.check_definition(definition)
 	-- TODO check all mandatory definition elements!
 	
 	return true
+end
+
+-------------------------------------------------------------------------------
+--- @function [parent=#mobf] drop_kill_result(entity, killer)
+--
+--! @brief do a drop for a specific entity
+--! @memberof mobf
+--! @public
+--
+--! @param entity entity to do drop for
+--! @param killer the one who did kill it
+--! @return true/false
+--------------------------------------------------------------------------------
+function mobf.drop_kill_result(entity, killer)
+
+	local result = {}
+	
+	if type(entity.data.generic.kill_result) == "string" then
+	
+		result[#result+1] = entity.data.generic.kill_result
+		
+	elseif type(entity.data.generic.kill_result) == "function" then
+	
+		result = entity.data.generic.kill_result(entity, killer)
+		
+	elseif type(entity.data.generic.kill_result) == "table" then
+	
+		if #entity.data.generic.kill_result == 0 then
+			return
+		end
+	
+		if type(entity.data.generic.kill_result[1]) == "string" then
+			result = entity.data.generic.kill_result
+		else 
+			for i = 1, #entity.data.generic.kill_result, 1 do
+			
+				local name = entity.data.generic.kill_result[i].name
+				local chance = entity.data.generic.kill_result[i].chance
+				local min = entity.data.generic.kill_result[i].min
+				local max = entity.data.generic.kill_result[i].max
+			
+				if entity.data.generic.kill_result[i].name ~= nil and
+					entity.data.generic.kill_result[i].chance ~= nil then
+					
+					if math.random() < chance then
+						result[#result+1] = name .. " " .. math.random(min,max)
+					end
+				end
+			end
+		end
+	else
+		return
+	end
+	
+	print("drop will be: " .. dump(result) .. " original was: " .. dump(entity.data.generic.kill_result))
+	
+	if #result == 0 then
+		return
+	end
+	
+	for i=1,#result, 1 do
+		local is_added = false
+		if killer:is_player() then
+			if killer:get_inventory():room_for_item("main", result[i]) then
+				killer:get_inventory():add_item("main", result[i])
+				is_added = true
+			end
+		end
+		
+		if not is_added then
+			minetest.add_item(entity.object:getpos(),result[i])
+		end
+	end
 end
