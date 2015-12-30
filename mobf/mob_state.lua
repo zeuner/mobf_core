@@ -531,6 +531,12 @@ function mob_state.BuiltinHungerPrecondition(mob)
 			--				dump(mob.hunger.target_entities) ..
 			--				" around: " .. printpos(pos))
 
+			local state = environment.pos_is_ok(entity:getbasepos(),entity)
+			
+			if state ~= "ok" then
+				return false
+			end
+
 			local lower_pos = {x=pos.x-mob.hunger.range,
 								y=pos.y-mob.hunger.range,
 								z=pos.z-mob.hunger.range}
@@ -605,7 +611,7 @@ function mob_state.BuiltinHungerPrecondition(mob)
 							pos.y = pos.y+1
 						end
 
-						local path = mobf_path.find_path(pos,targetpos,5,1,1,"A*_noprefetch")
+						local path = mobf_path.find_path_on_surface(pos,targetpos,5,1,1,"A*_noprefetch", entity.environment.surfaces)
 
 						if path ~= nil then
 							entity.dynamic_data.hunger = {}
@@ -671,7 +677,7 @@ function mob_state.BuiltinHungerEnter(mob)
 				dbg_mobf.mob_state_lvl1("MOBF: EnterHungerState, failed to set target")
 			end
 		else
-			entity.object:set_properties({stepheight=1})
+			entity.object:set_properties({stepheight=1.1})
 			p_mov_gen.set_path(entity,entity.dynamic_data.hunger.path)
 		end
 		--p_mov_gen.set_cycle_path(entity,handler)
