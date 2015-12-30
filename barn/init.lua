@@ -24,7 +24,7 @@ else
 end
 
 minetest.log("action","MOD: barn mod loading ...")
-local version = "0.0.13"
+local version = "0.0.14"
 
 local modpath = minetest.get_modpath("barn")
 
@@ -105,7 +105,7 @@ end
 function breed(breedpairs,self,now)
 
 	local pos = self.object:getpos()
-	local objectlist = minetest.get_objects_inside_radius(pos,2)
+	local objectlist = minetest.get_objects_inside_radius(pos,4)
 	local le_animal1 = nil
 	local le_animal2 = nil
 
@@ -143,7 +143,7 @@ function breed(breedpairs,self,now)
 		end
 	end
 
-	if math.random() < (0.0001 * (now - (self.last_breed_time + 30))) and
+	if math.random() < (0.001 * (now - (self.last_breed_time + 30))) and
 		self.last_breed_time > 0 and
 		le_animal1 ~= nil and
 		le_animal2 ~= nil then
