@@ -407,13 +407,27 @@ function mobf_debug.rightclick_callback(entity,player)
 			print("MOBF: \t\tpath index:                  " .. entity.dynamic_data.p_movement.next_path_index)
 			print("MOBF: \t\tpath:                        " .. dump(entity.dynamic_data.p_movement.path))
 		if entity.dynamic_data.p_movement.path ~= nil then
+		
+			--clear old path markers
+			local entities_around = minetest.get_objects_inside_radius(basepos,20)
+			
+			print("entities around: " .. #entities_around)
+			
+			for i, v in ipairs(entities_around) do
+				if v:get_luaentity() and  v:get_luaentity().owner == tostring(entity) then
+					v:get_luaentity().removed = true
+					v:remove()
+				end
+			end
+		
 			for i,v in ipairs(entity.dynamic_data.p_movement.path) do
 				local objects = minetest.get_objects_inside_radius(v,0.5)
 				local found = false;
 				for i=1,#objects,1 do
 					local luaentity = objects[i]:get_luaentity()
 					if luaentity ~= nil and
-						luaentity.name == "mobf:path_marker_entity" then
+						luaentity.name == "mobf:path_marker_entity"and not
+						luaentity.removed then
 						found = true
 						break
 					end
@@ -424,7 +438,8 @@ function mobf_debug.rightclick_callback(entity,player)
 				if not found and
 					node_at.name ~= nil and
 					node_at.name ~= "ignore" then
-					spawning.spawn_and_check("mobf:path_marker_entity",v,"mark_path")
+					local added = spawning.spawn_and_check("mobf:path_marker_entity",v,"mark_path")
+					added.owner = tostring(entity)
 				end
 			end
 			print("MOBF: \t\tdistance to next point:      " .. p_mov_gen.distance_to_next_point(entity,entity.object:getpos()))
