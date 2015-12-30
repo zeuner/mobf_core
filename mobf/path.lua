@@ -42,10 +42,8 @@ function mobf_path.find_path_on_surface(pos1,pos2,searchdistance,max_jump,max_dr
 		return nil
 	end
 
-	print("Surfaces: " .. dump(surfaces))
 	for i = 1, #interim_path -1, 1 do
 		local surfacestate =  environment.checksurface(interim_path[i],surfaces)
-		print(printpos(interim_path[i]) .. " " .. surfacestate)
 		if surfacestate ~= "ok" and surfacestate ~= "possible_surface" then
 			return nil
 		end
@@ -117,8 +115,6 @@ function mobf_path.optimize(path)
 		if math.abs(z_delta) > 0 then
 			deltacount = deltacount +1
 		end
-		
-		print("x: " .. x_delta .. " y: " .. y_delta .. " z: " .. z_delta .. " count: " .. deltacount)
 		
 		if deltacount <= 1 then
 			path_optimized[#path_optimized] = path[i]
