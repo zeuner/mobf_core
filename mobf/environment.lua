@@ -875,7 +875,7 @@ end
 --!           -drop_above_water      -@>position is to far above water
 --!           -above_water           -@>position is right over water
 --!           -in_water              -@>position is within a water node(source or flow)
---!			  -in_air                -@>position is in air
+--!           -in_air                -@>position is in air
 --!           -above_limit           -@>position is above level limit
 --!           -below_limit           -@>position is below level limit
 --!           -wrong_surface         -@>position is above surface mob shouldn't be
@@ -1126,5 +1126,27 @@ function environment.possible_pos(entity,pos)
 	return true
 end
 
+-------------------------------------------------------------------------------
+-- @function env_lim(old_state, min_media, min_geom, min_geom_center,
+--				min_min_surface, min_max_surface, min_center_surface)
+--
+--! @brief build environment limit description table
+--
+--! @return table containing limits
+-------------------------------------------------------------------------------
+function env_lim(old_state, min_media, min_geom, min_geom_center,
+					min_min_surface, min_max_surface, min_center_surface)
+					
+	return {
+		old_state = old_state,
+		min_media = min_media,
+		min_geom = min_geom,
+		min_geom_center = min_geom_center,
+		min_min_surface = min_min_surface,
+		min_max_surface = min_max_surface,
+		min_center_surface = min_center_surface
+	}
+
+end
 --!@}
 
