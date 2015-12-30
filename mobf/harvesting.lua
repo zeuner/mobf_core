@@ -43,6 +43,115 @@ function harvesting.init_dynamic_data(entity,now)
 	entity.dynamic_data.harvesting = data
 end
 
+
+function harvesting.catch(entity, player, now)
+
+	if entity.data.catching ~= nil and
+		entity.data.catching.tool ~= "" then
+
+		--bugfix check
+		if (entity.dynamic_data.spawning.player_spawned and
+				entity.dynamic_data.spawning.spawner == nil) then
+			dbg_mobf.harvesting_lvl1("MOBF: mob flagged as player spanwned but no spawner set!")
+			entity.dynamic_data.spawning.player_spawned = false
+		end
+
+		--grief protection
+		if minetest.world_setting_get("mobf_grief_protection") and
+			entity.dynamic_data.spawning.player_spawned and
+			entity.dynamic_data.spawning.spawner ~= player:get_player_name() then
+			dbg_mobf.harvesting_lvl1("MOBF: anti gief triggered catching aborted")
+			return true
+		end
+
+		-- what's wielded by player
+		local tool = player:get_wielded_item()
+		local catchtools = entity.data.catching.tool
+		
+		if type(entity.data.catching.tool) == "string" then
+			catchtools = {}
+			catchtools[#catchtools +1 ] = {
+				name = entity.data.catching.tool,
+				chance = 1
+			}
+		end
+		
+		dbg_mobf.harvesting_lvl3("MOBF: catch_tool: " .. dump(tool:get_name()) .. " catchtools: " .. dump(catchtools) .. " count: " .. #catchtools)
+		
+		for i = 1, #catchtools, 1 do
+			dbg_mobf.harvesting_lvl3("MOBF: catch_tool: " .. dump(tool:get_name()) .. " <-> " .. catchtools[i].name )
+			if tool:get_name() == catchtools[i].name then
+				dbg_mobf.harvesting_lvl1("MOBF: player wearing ".. 
+					entity.data.catching.tool)
+		
+				-- check if mob is in some state in which it can't be cought, abort in this case
+				if type(entity.data.catching.can_be_cought) == "function" then
+					if (not entity.data.catching.can_be_cought(entity)) then
+						dbg_mobf.harvesting_lvl1("MOBF: entity denied catching")
+						return true
+					end
+				end
+				
+				-- take from inventory
+				if entity.data.catching.consumed == true then
+					if player:get_inventory():contains_item("main", catchtools[i].name.." 1") then
+						dbg_mobf.harvesting_lvl2("MOBF: removing: "
+							.. catchtools[i].name.." 1")
+						player:get_inventory():remove_item("main",
+							catchtools[i].name.." 1")
+					else
+						mobf_bug_warning(LOGLEVEL_ERROR,"MOBF: BUG!!! player is"
+						.. " wearing a item he doesn't have in inventory!!!")
+						return true
+					end
+				end
+				
+				-- check chances
+				if math.random() > catchtools[i].chance then
+					minetest.chat_send_player(player:get_player_name(),
+						"You failed to catch " .. entity.description .. "!")
+					return true
+				end
+		
+				-- determin what to add in case of successfull catching
+				local catch_result = nil
+				local catch_type = "undefined"
+
+				if entity.data.generic.addoncatch ~= nil then
+					catch_result = entity.data.generic.addoncatch.." 1"
+					catch_type = "specified"
+				else
+					catch_result = entity.data.modname ..":"..entity.data.name.." 1"
+					catch_type = "automatic"
+				end
+				
+				dbg_mobf.harvesting_lvl2("MOBF: adding " .. catch_type .. 
+					" oncatch item: " .. catch_result)
+				
+				local add_retval = 
+					player:get_inventory():add_item("main",catch_result)
+				
+				-- try to add to player inventory
+				if not add_retval:is_empty() then
+					minetest.chat_send_player(player:get_player_name(),
+						"You don't have any room left in inventory!")
+					return true
+				end
+				
+				--play catch sound
+				if entity.data.sound ~= nil then
+					sound.play(entity.object:getpos(),entity.data.sound.catch);
+				end
+				
+				spawning.remove(entity, "cought")
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
 -------------------------------------------------------------------------------
 -- @function [parent=#harvesting] callback(entity,player,now)
 --
@@ -61,80 +170,9 @@ function harvesting.callback(entity,player,now)
 	local now = mobf_get_current_time()
 
 	--handle catching of mob
-	if entity.data.catching ~= nil and
-		entity.data.catching.tool ~= "" then
-
-		if (entity.dynamic_data.spawning.player_spawned and
-				entity.dynamic_data.spawning.spawner == nil) then
-			dbg_mobf.harvesting_lvl1("MOBF: mob flagged as player spanwned but no spawner set!")
-			entity.dynamic_data.spawning.player_spawned = false
-		end
-
-		--grief protection
-		if minetest.world_setting_get("mobf_grief_protection") and
-			entity.dynamic_data.spawning.player_spawned and
-			entity.dynamic_data.spawning.spawner ~= player:get_player_name() then
-			dbg_mobf.harvesting_lvl1("MOBF: anti gief triggered catching aborted")
-			return true
-		end
-
-		-- what's wielded by player
-		local tool = player:get_wielded_item()
-
-		if tool:get_name() == entity.data.catching.tool then
-			dbg_mobf.harvesting_lvl1("MOBF: player wearing ".. entity.data.catching.tool)
-			
-			if type(entity.data.catching.can_be_cought) == "function" then
-				if (not entity.data.catching.can_be_cought(entity)) then
-					dbg_mobf.harvesting_lvl1("MOBF: entity denied catching")
-					return true
-				end
-			end
-
-			--check if player has enough room
-			local inventory_add_result = nil
-
-			if entity.data.generic.addoncatch ~= nil then
-				inventory_add_result = player:get_inventory():add_item("main",
-					entity.data.generic.addoncatch.." 1")
-				dbg_mobf.harvesting_lvl2(
-					"MOBF: adding specified oncatch item: " ..
-					entity.data.generic.addoncatch)
-			else
-				inventory_add_result = player:get_inventory():add_item("main",
-					entity.data.modname ..":"..entity.data.name.." 1")
-				dbg_mobf.harvesting_lvl2(
-					"MOBF: adding automatic oncatch item: " ..
-					entity.data.modname ..":"..entity.data.name)
-			end
-
-			if not inventory_add_result:is_empty() then
-				minetest.chat_send_player(player:get_player_name(),
-					"You don't have any room left in inventory!")
-				return true
-			end
-
-			--play catch sound
-			if entity.data.sound ~= nil then
-				sound.play(entity.object:getpos(),entity.data.sound.catch);
-			end
-
-			if entity.data.catching.consumed == true then
-					if player:get_inventory():contains_item("main",entity.data.catching.tool.." 1") then
-						dbg_mobf.harvesting_lvl2("MOBF: removing: "
-							.. entity.data.catching.tool.." 1")
-						player:get_inventory():remove_item("main",
-							entity.data.catching.tool.." 1")
-					else
-						mobf_bug_warning(LOGLEVEL_ERROR,"MOBF: BUG!!! player is"
-						.. " wearing a item he doesn't have in inventory!!!")
-					end
-			end
-			spawning.remove(entity, "cought")
-			return true
-		end
+	if harvesting.catch(entity,player,now) then
+		return true
 	end
-
 
 	--handle harvestable mobs, check if player is wearing correct tool
 	if entity.data.harvest ~= nil then
