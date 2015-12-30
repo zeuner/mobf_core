@@ -26,6 +26,113 @@ end
 mobf_assert_backtrace(not core.global_exists("mobf_path"))
 mobf_path = {}
 
+
+-------------------------------------------------------------------------------
+-- @function [parent=#mobf_path] find_path_on_surface()
+--
+--! @brief workaround for broken mintest find_path function
+--! @ingroup mobf_path
+-------------------------------------------------------------------------------
+function mobf_path.find_path_on_surface(pos1,pos2,searchdistance,max_jump,max_drop,algorithm, surfaces)
+	
+	local interim_path = minetest.find_path(pos1, pos2, searchdistance,
+	                                        max_jump, max_drop, algorithm)
+
+	if interim_path == nil then
+		return nil
+	end
+
+	print("Surfaces: " .. dump(surfaces))
+	for i = 1, #interim_path -1, 1 do
+		local surfacestate =  environment.checksurface(interim_path[i],surfaces)
+		print(printpos(interim_path[i]) .. " " .. surfacestate)
+		if surfacestate ~= "ok" and surfacestate ~= "possible_surface" then
+			return nil
+		end
+	end
+	
+	return mobf_path.optimize(interim_path)
+end
+
+-------------------------------------------------------------------------------
+-- @function [parent=#mobf_path] optimize()
+--
+--! @brief remove all useless positions from path
+--! @ingroup mobf_path
+-------------------------------------------------------------------------------
+function mobf_path.optimize(path)
+
+	if path == nil then
+		return nil
+	end
+	
+	if #path == 2 then
+		return path
+	end
+
+	local pos_n_minor_1 = path[1]
+	local pos_n_minor_2 = path[2]
+
+	local path_optimized = {}
+	path_optimized[#path_optimized+1] = path[1]
+	path_optimized[#path_optimized+1] = path[2]
+
+	for i = 3, #path , 1 do
+	
+--		if ( pos_n_minor_1 ~= nil ) and ( pos_n_minor_2 ~= nil) then
+--			
+--			-- calculate pitch between n-2 point and current point
+--			local x_pitch = pos_n_minor_2.x - v.x
+--			local y_pitch = pos_n_minor_2.y - v.y
+--			local z_pitch = pos_n_minor_2.z - v.z
+--			
+--			local x_delta = (pos_n_minor_1.x - pos_n_minor_2.x) / x_pitch;
+--			local y_delta = (pos_n_minor_1.y - pos_n_minor_2.y) / y_pitch;
+--			local z_delta = (pos_n_minor_1.z - pos_n_minor_2.z) / z_pitch;
+--			
+--			-- check if there's more then one coordinate changing
+--			if (x_pitch ~= 0) and (y_pitch ~= 0) and (x_delta ~= y_delta ) then
+--				path_optimized[#path_optimized+1] = pos_n_minor_1
+--			elseif (y_pitch ~= 0) and (z_pitch ~= 0) and (y_delta ~= z_delta) then
+--				path_optimized[#path_optimized+1] pos_n_minor_1
+--			elseif (x_pitch ~= 0) and (z_pitch ~= 0) and (y_delta ~= z_delta) then
+--				path_optimized[#path_optimized+1] = pos_n_minor_1
+--			end
+--		end
+
+		local x_delta = path[i].x - pos_n_minor_2.x
+		local y_delta = path[i].y - pos_n_minor_2.y
+		local z_delta = path[i].z - pos_n_minor_2.z
+		
+		local deltacount = 0
+		
+		if math.abs(x_delta) > 0 then
+			deltacount = deltacount +1
+		end
+		
+		if math.abs(y_delta) > 0 then
+			deltacount = deltacount +1
+		end
+		
+		if math.abs(z_delta) > 0 then
+			deltacount = deltacount +1
+		end
+		
+		print("x: " .. x_delta .. " y: " .. y_delta .. " z: " .. z_delta .. " count: " .. deltacount)
+		
+		if deltacount <= 1 then
+			path_optimized[#path_optimized] = path[i]
+		else
+			path_optimized[#path_optimized+1] = path[i]
+		end		
+		
+		pos_n_minor_2 = pos_n_minor_1
+		pos_n_minor_1 = path[i]
+	end
+
+	return path_optimized
+end
+
 -------------------------------------------------------------------------------
 -- @function [parent=#mobf_path] find_path()
 --
@@ -35,46 +142,9 @@ mobf_path = {}
 function mobf_path.find_path(pos1,pos2,searchdistance,max_jump,max_drop,algorithm)
 
     local interim_path = minetest.find_path(pos1, pos2, searchdistance,
-                                            max_jump, max_drop, algorithm)
-    if interim_path == nil then
-      return nil
-    end
-
-    local pos_n_minor_1 = nil
-    local pos_n_minor_2 = nil
-    
-    local path_optimized = {}
-    
-    table.insert(path_optimized, interim_path[1])
-
-    for i,v in ipairs(interim_path) do
-          if ( pos_n_minor_1 ~= nil ) and ( pos_n_minor_2 ~= nil) then
-              
-              local x_pitch = pos_n_minor_2.x - v.x
-              local y_pitch = pos_n_minor_2.y - v.y
-              local z_pitch = pos_n_minor_2.z - v.z
-              
-              local x_delta = (pos_n_minor_1.x - pos_n_minor_2.x) / x_pitch;
-              local y_delta = (pos_n_minor_1.y - pos_n_minor_2.y) / y_pitch;
-              local z_delta = (pos_n_minor_1.z - pos_n_minor_2.z) / z_pitch;
-              
-              if (x_pitch ~= 0) and (y_pitch ~= 0) and (x_delta ~= y_delta ) then
-                  table.insert(path_optimized, pos_n_minor_1)
-              elseif (y_pitch ~= 0) and (z_pitch ~= 0) and (y_delta ~= z_delta) then
-                  table.insert(path_optimized, pos_n_minor_1)
-              elseif (x_pitch ~= 0) and (z_pitch ~= 0) and (y_delta ~= z_delta) then
-                  table.insert(path_optimized, pos_n_minor_1)
-              end
-          end
-
-    
-          pos_n_minor_2 = pos_n_minor_1
-          pos_n_minor_1 = v
-    end
-    
-    table.insert(path_optimized, interim_path[#interim_path])
-
-    return path_optimized
+                                           max_jump, max_drop, algorithm)
+                                            
+    return mobf_path.optimize(interim_path)
 end
 
 -------------------------------------------------------------------------------
@@ -116,7 +186,18 @@ function mobf_path.init()
 					if self.creationtime > 30 then
 						self.object:remove()
 					end
+				end,
+				
+				on_activate = function(self,staticdata)
+					if staticdata ~= nil and staticdata ~= "" then
+						self.object:remove()
+					end
+				end,
+				
+				get_staticdata = function(self)
+					return self.owner
 				end
+				
 			})
 
 	minetest.register_craftitem(":mobf:path_marker", {
