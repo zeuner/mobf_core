@@ -126,8 +126,8 @@ function movement_gen.callback(entity)
 	--                                                                       --
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
-	dbg_mobf.pmovement_lvl3("MOBF: position check for mob ".. entity.data.name ..
-		" "..printpos(movement_state.basepos))
+	dbg_mobf.pmovement_lvl3("MOBF: >>> probab movgen, position check for mob "..
+		 entity.data.name .. " "..printpos(movement_state.basepos) .. " ########################################")
 	movement_state.default_y_accel =
 			environment.get_default_gravity(movement_state.basepos,
 								entity.environment.media,
@@ -142,6 +142,7 @@ function movement_gen.callback(entity)
 
 	--mob has been removed due to unfixable problems
 	if retval.abort_processing then
+		dbg_mobf.pmovement_lvl3("MOBF:<<< probab movgen mob removed ########################################")
 		return
 	end
 
@@ -246,6 +247,8 @@ function movement_gen.callback(entity)
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
 	movement_gen.apply_movement_changes(entity,movement_state)
+	
+	dbg_mobf.pmovement_lvl3("MOBF:<<< probab movgen ########################################")
 end
 
 
