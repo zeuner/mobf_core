@@ -44,6 +44,7 @@ function p_mov_gen.callback(entity,now,dstep)
 	mobf_assert_backtrace(entity ~= nil)
 	mobf_assert_backtrace(entity.dynamic_data ~= nil)
 	mobf_assert_backtrace(entity.dynamic_data.p_movement ~= nil)
+	mobf_assert_backtrace(dstep ~= nil)
 
 	if entity.dynamic_data.p_movement.eta ~= nil then
 		if now < entity.dynamic_data.p_movement.eta then
@@ -51,82 +52,29 @@ function p_mov_gen.callback(entity,now,dstep)
 		end
 	end
 
-	local current_pos = entity.object:getpos()
-	local handled = false
-
 	if entity.dynamic_data.p_movement.path == nil then
 		dbg_mobf.path_mov_lvl1(
 				"MOBF: path movement but mo path set!!")
 		return
 	end
 
-
-	local max_distance = p_mov_gen.max_waypoint_distance
-
 	mobf_assert_backtrace(entity.dynamic_data.p_movement.next_path_index ~= nil)
-	mobf_assert_backtrace(max_distance ~= nil)
 
-	--check if target is reached
-	if p_mov_gen.distance_to_next_point(entity,current_pos)
-						< max_distance then
-		dbg_mobf.path_mov_lvl1("MOBF: pathmov next to next point switching target")
-		local update_target = true
-		
-		if entity.dynamic_data.p_movement.waypoint_stop then
-			entity.object:setvelocity({x=0,y=0,z=0})
-		end
-
-		--return to begining of path
-		if entity.dynamic_data.p_movement.next_path_index
-				== #entity.dynamic_data.p_movement.path then
-
-			if entity.dynamic_data.p_movement.cycle_path or
-				(entity.dynamic_data.p_movement.cycle_path == nil and
-				entity.data.patrol ~= nil and
-				entity.data.patrol.cycle_path) then
-				--0 is correct as it's incremented by one later
-				entity.dynamic_data.p_movement.next_path_index = 0
-			else
-				if entity.dynamic_data.p_movement.HANDLER_end_of_path ~= nil
-					and type(entity.dynamic_data.p_movement.HANDLER_end_of_path) == "function" then
-					entity.dynamic_data.p_movement.HANDLER_end_of_path(entity)
-				end
-				dbg_mobf.path_mov_lvl1("MOBF: cycle not set not updating point")
-				update_target = false
-				handled = true
-			end
-		end
-
-		if update_target then
-			mobf_assert_backtrace(entity.dynamic_data.p_movement.path ~= nil)
-			entity.dynamic_data.p_movement.next_path_index =
-				entity.dynamic_data.p_movement.next_path_index + 1
-
-			entity.dynamic_data.movement.target =
-				entity.dynamic_data.p_movement.path
-					[entity.dynamic_data.p_movement.next_path_index]
-
-			dbg_mobf.path_mov_lvl1("MOBF: (1) setting new target to index: " ..
-				entity.dynamic_data.p_movement.next_path_index .. " pos: " ..
-				printpos(entity.dynamic_data.movement.target))
-			handled = true
-		end
-	end
-
-	if not handled and
-		entity.dynamic_data.movement.target == nil then
+	if entity.dynamic_data.movement.target == nil then
 		mobf_assert_backtrace(entity.dynamic_data.p_movement.path ~= nil)
-
-		entity.dynamic_data.movement.target =
-				entity.dynamic_data.p_movement.path
-					[entity.dynamic_data.p_movement.next_path_index]
+		
+		local target = entity.dynamic_data.p_movement.path[entity.dynamic_data.p_movement.next_path_index]
 
 		dbg_mobf.path_mov_lvl1("MOBF: (2) setting new target to index: " ..
 				entity.dynamic_data.p_movement.next_path_index .. " pos: " ..
-				printpos(entity.dynamic_data.movement.target))
+				printpos(target))
+				
+		mgen_follow.set_target(entity, target, nil, 
+								p_mov_gen.max_waypoint_distance,
+								p_mov_gen.on_target, true)
 	end
 
-	mgen_follow.callback(entity,now)
+	mgen_follow.callback(entity,now,dstep)
 end
 
 
@@ -172,7 +120,6 @@ function p_mov_gen.init_dynamic_data(entity,now,restored_data)
 			force_target        = nil,
 			pathowner           = nil,
 			pathname            = nil,
-			waypoint_stop       = true,
 			}
 
 	if restored_data ~= nil and
@@ -220,15 +167,15 @@ function p_mov_gen.set_path(entity,path, enable_speedup)
 	mobf_assert_backtrace(entity.dynamic_data.p_movement ~= nil)
 	if path ~= nil then
 		entity.dynamic_data.p_movement.next_path_index = 1
-		entity.dynamic_data.movement.max_distance =
-			p_mov_gen.max_waypoint_distance
 		entity.dynamic_data.p_movement.path = path
-
-		--a valid path has at least 2 positions
-		mobf_assert_backtrace(#entity.dynamic_data.p_movement.path > 1)
-		entity.dynamic_data.movement.target =
-				entity.dynamic_data.p_movement.path[2]
-		entity.dynamic_data.movement.follow_speedup = enable_speedup
+		
+		if enable_speedup then
+			entity.dynamic_data.movement.follow_speedup = follow_speedup
+		end
+		
+		mgen_follow.set_target(entity,entity.dynamic_data.p_movement.path[1], nil, 
+								p_mov_gen.max_waypoint_distance,
+								p_mov_gen.on_target, true)
 		return true
 	else
 		entity.dynamic_data.p_movement.next_path_index = nil
@@ -267,6 +214,87 @@ end
 -------------------------------------------------------------------------------
 function p_mov_gen.set_end_of_path_handler(entity,handler)
 	entity.dynamic_data.p_movement.HANDLER_end_of_path = handler
+end
+
+-------------------------------------------------------------------------------
+-- name: on_target(entity)
+--
+--! @brief called once follow movegen tells it's on target
+--! @memberof p_mov_gen
+--! @public
+--
+--! @param entity mob reaching target
+--! @param really_on_target tells if follow movegen did reach it or notice a fatal issue
+-------------------------------------------------------------------------------
+function p_mov_gen.on_target(entity, really_on_target)
+
+	if really_on_target then
+		dbg_mobf.path_mov_lvl2("MOBF: pathmov target "..
+			 printpos(entity.dynamic_data.p_movement.path[1]) .. " reached")
+
+		local cycle_path = entity.dynamic_data.p_movement.cycle_path or
+				(entity.dynamic_data.p_movement.cycle_path == nil and
+				entity.data.patrol ~= nil and
+				entity.data.patrol.cycle_path)
+
+		dbg_mobf.path_mov_lvl3("MOBF: pathmov cycle:  " .. dump(cycle_path))
+		--remove first point from path
+		if not cycle_path then
+			local new_path = {}
+			
+			for i = 2, #entity.dynamic_data.p_movement.path, 1 do
+				new_path[#new_path +1] = entity.dynamic_data.p_movement.path[i]
+			end
+			entity.dynamic_data.p_movement.path = new_path
+		end
+		
+		
+		if not cycle_path or 
+				(entity.dynamic_data.p_movement.next_path_index
+				== #entity.dynamic_data.p_movement.path) then
+				entity.dynamic_data.p_movement.next_path_index = 0
+		end
+
+		--get next point to move to or exit if already at end
+		if #entity.dynamic_data.p_movement.path == 0 then
+			if entity.dynamic_data.p_movement.HANDLER_end_of_path ~= nil
+					and type(entity.dynamic_data.p_movement.HANDLER_end_of_path) == "function" then
+				entity.dynamic_data.p_movement.HANDLER_end_of_path(entity, true)
+				entity.dynamic_data.p_movement.HANDLER_end_of_path = nil
+			end
+			entity.dynamic_data.p_movement.path = nil
+			dbg_mobf.path_mov_lvl1("MOBF: end of path reached")
+			return true
+		end
+
+		mobf_assert_backtrace(entity.dynamic_data.p_movement.path ~= nil)
+		
+		entity.dynamic_data.p_movement.next_path_index =
+			entity.dynamic_data.p_movement.next_path_index + 1
+			
+		local targetpos = entity.dynamic_data.p_movement.path
+				[entity.dynamic_data.p_movement.next_path_index]
+
+		mgen_follow.set_target(entity,targetpos, nil, 
+								p_mov_gen.max_waypoint_distance,
+								p_mov_gen.on_target, true)
+	
+
+		dbg_mobf.path_mov_lvl1("MOBF: (1) setting new target to index: " ..
+			entity.dynamic_data.p_movement.next_path_index .. " pos: " ..
+			printpos(targetpos))
+	else
+		dbg_mobf.path_mov_lvl1("MOBF: failed to reach target we need to find another way there")
+		
+		entity.dynamic_data.p_movement.path = nil
+
+		if entity.dynamic_data.p_movement.HANDLER_end_of_path ~= nil
+			and type(entity.dynamic_data.p_movement.HANDLER_end_of_path) == "function" then
+				
+			entity.dynamic_data.p_movement.HANDLER_end_of_path(entity, false)
+			entity.dynamic_data.p_movement.HANDLER_end_of_path = nil
+		end
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -318,9 +346,6 @@ function p_mov_gen.set_target(entity, target, follow_speedup, max_distance)
 	entity.dynamic_data.p_movement.path = nil
 	entity.dynamic_data.p_movement.next_path_index = 1
 
-	--on target mode max distance is always 0.5
-	entity.dynamic_data.movement.max_distance = p_mov_gen.max_waypoint_distance
-
 	--try to find path on our own
 	if not mobf_get_world_setting("mobf_disable_pathfinding") then
 		entity.dynamic_data.p_movement.path =
@@ -328,27 +353,24 @@ function p_mov_gen.set_target(entity, target, follow_speedup, max_distance)
 	else
 		entity.dynamic_data.p_movement.path = nil
 	end
-
-	if entity.dynamic_data.p_movement.path ~= nil then
-		--a valid path has at least 2 positions
-		mobf_assert_backtrace(#entity.dynamic_data.p_movement.path > 1)
-		entity.dynamic_data.movement.target =
-				entity.dynamic_data.p_movement.path[2]
-		entity.dynamic_data.movement.follow_speedup = follow_speedup
-		return true
-	end
-
-
+	
+	-- build a path from target point only
 	if entity.dynamic_data.p_movement.path == nil then
 		minetest.log(LOGLEVEL_INFO,
 			"MOBF: no pathfinding support/ no path found directly setting targetpos as path")
 
-		entity.dynamic_data.p_movement.path = {}
+		local path = {}
+		path[#path+1] = targetpos
+		entity.dynamic_data.p_movement.path = path
+	end
 
-		table.insert(entity.dynamic_data.p_movement.path,targetpos)
-		entity.dynamic_data.movement.target =
-				entity.dynamic_data.p_movement.path[1]
+	-- set the path
+	if entity.dynamic_data.p_movement.path ~= nil then
 		entity.dynamic_data.movement.follow_speedup = follow_speedup
+		
+		mgen_follow.set_target(entity,entity.dynamic_data.p_movement.path[1], nil, 
+								p_mov_gen.max_waypoint_distance,
+								p_mov_gen.on_target, true)
 		return true
 	end
 
