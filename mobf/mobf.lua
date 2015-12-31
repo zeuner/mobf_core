@@ -684,7 +684,7 @@ function mobf.register_entity(name, cur_graphics, mob)
 
 				local movestart = mobf_get_time_ms()
 				--movement generator
-				self.dynamic_data.current_movement_gen.callback(self,now)
+				self.dynamic_data.current_movement_gen.callback(self,now, self.current_dtime)
 
 				mobf_warn_long_fct(movestart,"on_step_movement","movement")
 
