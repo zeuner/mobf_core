@@ -647,9 +647,8 @@ function mob_state.BuiltinHungerLeave(mob)
 		entity.object:set_properties({stepheight=entity.dynamic_data.hunger.old_stepheight})
 		entity.dynamic_data.hunger = nil
 		p_mov_gen.set_cycle_path(entity,nil)
-		p_mov_gen.set_path(entity,nil)
 		p_mov_gen.set_end_of_path_handler(entity,nil)
-
+		p_mov_gen.set_path(entity,nil)
 	end
 end
 
@@ -671,19 +670,25 @@ function mob_state.BuiltinHungerEnter(mob)
 
 		--use stepheight 1 as we did look for a path by using this
 		entity.dynamic_data.hunger.old_stepheight = entity.stepheight
+		
+		local target_set = false
 
 		if (type(entity.dynamic_data.hunger.target) == "userdata") then
 			if not p_mov_gen.set_target(entity,entity.dynamic_data.hunger.target) then
 				dbg_mobf.mob_state_lvl1("MOBF: EnterHungerState, failed to set target")
+			else
+				target_set = true
 			end
 		else
-			entity.object:set_properties({stepheight=1.1})
+			entity.object:set_properties({stepheight=1})
 			p_mov_gen.set_path(entity,entity.dynamic_data.hunger.path)
+			target_set = true
 		end
-		--p_mov_gen.set_cycle_path(entity,handler)
-		p_mov_gen.set_cycle_path(entity,false)
-		p_mov_gen.set_end_of_path_handler(entity,mob_state.BuiltinHungerTargetReached)
 
+		if target_set then
+			p_mov_gen.set_cycle_path(entity,false)
+			p_mov_gen.set_end_of_path_handler(entity,mob_state.BuiltinHungerTargetReached)
+		end
 	end
 end
 
@@ -696,7 +701,14 @@ end
 --
 --! @param entity that reached the target
 -------------------------------------------------------------------------------
-function mob_state.BuiltinHungerTargetReached(entity)
+function mob_state.BuiltinHungerTargetReached(entity, successfull)
+
+	if not successfull then
+		local default_state = mob_state.get_state_by_name(entity,"default")
+		mob_state.change_state(entity,default_state)
+		return
+	end
+
 	--consume original target
 	if (entity.dynamic_data.hunger.target ~= nil) and
 		(entity.data.hunger.keep_food == nil or
