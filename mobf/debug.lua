@@ -497,6 +497,10 @@ function mobf_debug.rightclick_callback(entity,player)
 			print("MOBF: \tTop attention object:       " .. attention_name)
 		end
 	end
+	
+	if entity.dynamic_data.movement.follow_stuck_counter ~= nil then
+		print("MOBF: Follow movgen stuck counter: " .. entity.dynamic_data.movement.follow_stuck_counter)
+	end
 
 	if entity.dynamic_data.graphics.last_fps ~= nil then
 		print("MOBF: Animating with: " .. entity.dynamic_data.graphics.last_fps .. " fps")
