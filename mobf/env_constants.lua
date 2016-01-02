@@ -25,13 +25,20 @@ MQ_IN_AIR   =  10
 MQ_SOLID    =   5
 
 GQ_FULL     = 100
-GQ_PARTIAL  =  60
+
+GQ_1P       =  60
+GQ_2P       =  55
+GQ_3P       =  50
+GQ_PARTIAL  =  50
 GQ_NONE     =  30
 
 SQ_OK       = 100
 SQ_POSSIBLE =  60
 SQ_WRONG    =  30
+SQ_WATER_1P =  20
+SQ_WATER_2P =  15
 SQ_WATER    =  10
+SQ_WATER_3P =  10
 
 LQ_OK       = 100
 LQ_ABOVE    =  60
