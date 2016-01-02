@@ -35,7 +35,7 @@ direction_control = {}
 -------------------------------------------------------------------------------
 function direction_control.changeaccel(pos,entity,current_velocity)
 
-	local maxtries = 5
+	local maxtries = 21
 	local old_quality = environment.pos_quality(pos,entity)
 
 	local new_accel =
@@ -52,8 +52,8 @@ function direction_control.changeaccel(pos,entity,current_velocity)
 	
 	local accel_accepted = false
 	
-	dbg_mobf.pmovement_lvl1("MOBF: current quality: " ..
-								old_quality:tostring())
+--	dbg_mobf.pmovement_lvl3("MOBF: current quality: " ..
+--								old_quality:tostring())
 	
 	local best_quality =
 		environment.evaluate_state( new_quality,
@@ -74,9 +74,9 @@ function direction_control.changeaccel(pos,entity,current_velocity)
 			break
 		end
 		
-		dbg_mobf.pmovement_lvl1("MOBF: predicted pos " .. printpos(pos_predicted)
-			.. " isn't perfect " .. (maxtries - i) .. " tries left, state: "
-			.. new_quality.tostring(new_quality))
+--		dbg_mobf.pmovement_lvl3("MOBF: predicted pos " .. printpos(pos_predicted)
+--			.. " isn't perfect " .. (maxtries - i) .. " tries left, state: "
+--			.. new_quality.tostring(new_quality))
 		
 		
 		--accept little less perfect quality in rare cases too
@@ -120,11 +120,14 @@ function direction_control.changeaccel(pos,entity,current_velocity)
 			best_is_possible = fair_state or acceptable_state
 		end
 		
+		
+		local minrotation = math.floor(i/5) * math.pi/4
+		
 		-- get new random accel
 		new_accel =
 			direction_control.get_random_acceleration(
 				entity.data.movement.min_accel,
-				entity.data.movement.max_accel,graphics.getyaw(entity),0)
+				entity.data.movement.max_accel,graphics.getyaw(entity),minrotation)
 				
 		pos_predicted =
 			movement_generic.predict_next_block(pos,current_velocity,new_accel)
@@ -141,8 +144,8 @@ function direction_control.changeaccel(pos,entity,current_velocity)
 			new_accel = accel_best_found_quality
 		else
 			dbg_mobf.pmovement_lvl1(
-				"MOBF: Didn't find a suitable acceleration stopping movement: "
-				.. entity.data.name .. printpos(pos))
+				"MOBF:\t" .. T_RED .. "Didn't find a suitable acceleration stopping movement: "
+				.. entity.data.name .. printpos(pos) .. C_RESET)
 				
 			entity.object:setvelocity({x=0,y=0,z=0})
 			entity.dynamic_data.movement.started = false
@@ -188,7 +191,7 @@ function direction_control.get_random_acceleration(
 
 	local new_accel = mobf_calc_vector_components(new_direction,rand_accel)
 
-	dbg_mobf.pmovement_lvl3(" new direction: " .. new_direction ..
+	dbg_mobf.pmovement_lvl3("MOBF: get_random_acceleration new direction: " .. new_direction ..
 							" old direction: " .. current_yaw ..
 							" new accel: " .. printpos(new_accel) ..
 							" orientation_delta: " .. orientation_delta)
@@ -199,38 +202,51 @@ end
 
 function direction_control.get_acceleration_to(entity, movement_state, targetpos, pos_requirement)
 
-	local factor = 0.1
+	local factor = 1.5
 	local accel_found = false
 	
-	repeat
-		movement_state.accel_to_set =
+	local tested_accel = 
 			movement_generic.get_accel_to(targetpos, entity, nil,
 					entity.data.movement.max_accel*factor)
 					
-		local next_pos =
+	local next_pos =
 				movement_generic.predict_next_block(
 						movement_state.basepos,
 						movement_state.current_velocity,
-						movement_state.accel_to_set)
+						tested_accel)
 						
-		local next_quality = environment.pos_quality(
-									next_pos,
-									entity
-									)
-		
-		if environment.evaluate_state(next_quality,
-								pos_requirement) then
-			accel_found = true
-		end
-					
-		factor = factor +0.1
-	until ( factor > 1 or accel_found)
+	local next_quality = environment.pos_quality(
+								next_pos,
+								entity
+								)
 	
-	if accel_found then
+	-- reduce factor for as long as possible
+	while environment.evaluate_state(next_quality, pos_requirement) and
+		factor > 0 do
+		
+		movement_state.accel_to_set = tested_accel
 		movement_state.changed = true
+		accel_found = true
+		
+		factor = factor -0.2
+		
+		tested_accel = 
+			movement_generic.get_accel_to(targetpos, entity, nil,
+					entity.data.movement.max_accel*factor)
+	
+		next_pos =
+				movement_generic.predict_next_block(
+						movement_state.basepos,
+						movement_state.current_velocity,
+						tested_accel)
+						
+		next_quality = environment.pos_quality(
+								next_pos,
+								entity
+								)
 	end
 
-	return accel_found
+	return accel_found, tested_accel, next_quality
 end
 
 -------------------------------------------------------------------------------
@@ -295,6 +311,142 @@ end
 
 
 -------------------------------------------------------------------------------
+-- name: redirect_safe_pos_callback(entity, movement_state, predicted_pos, slow_down)
+--
+--! @brief handle pending redirection
+--! @memberof direction_control
+--! @private
+--
+--! @param entity mob to check
+--! @param movement_state current movement state
+--! @param predicted_pos position the mob will be soon
+--! @param slow_dow slow down mob in case of error
+--! @return handling complete, position redirecting atm
+-------------------------------------------------------------------------------
+function direction_control.redirect_safe_pos_callback(entity, movement_state, predicted_pos, slow_down)
+
+	if entity.dynamic_data.movement.redirect_safe_pos == nil then
+		dbg_mobf.pmovement_lvl2(
+			"MOBF:\t<<not redirecting")
+		return false, nil
+	end
+	
+	local safe_pos = entity.dynamic_data.movement.redirect_safe_pos
+	local last_distance = entity.dynamic_data.movement.redirect_safe_pos_distance
+
+	if safe_pos ~= nil then
+		dbg_mobf.pmovement_lvl2(
+			"MOBF:\talready redirecting " .. printpos(entity:getbasepos()) .. "-->" .. printpos(safe_pos))
+		local new_distance = mobf_calc_distance(entity:getbasepos(), safe_pos)
+		local predicted_distance = mobf_calc_distance(predicted_pos, safe_pos)
+		
+		if new_distance > last_distance then
+			safe_pos = nil
+		else
+			entity.dynamic_data.movement.redirect_safe_pos_distance = new_distance
+		end
+		
+		if predicted_distance < new_distance then
+			-- still on our way to safe position don't do anything
+			dbg_mobf.pmovement_lvl2(
+				"MOBF:\t" .. T_GREEN .. "still valid not doing special handling".. C_RESET)
+			return true
+		end
+		
+		dbg_mobf.pmovement_lvl2(
+				"MOBF:\t" .. T_YELLOW .. "moved towards right direction but current velocity/acceleration is wrong".. C_RESET)
+		
+		if slow_down then
+			movement_generic.slow_down_xz(entity, 0.5)
+		end
+		
+		-- we're to far away from our target find a new one
+		if new_distance > 1 then
+			return false
+		else 
+			return false, safe_pos
+		end
+	end
+	
+	entity.dynamic_data.movement.redirect_safe_pos = nil
+	entity.dynamic_data.movement.redirect_safe_pos_distance = 9999
+	return false, nil
+
+end
+
+-------------------------------------------------------------------------------
+-- name: redirect_safe_pos(entity, pos)
+--
+--! @brief (re-)set the redirection position
+--! @memberof direction_control
+--! @private
+--
+--! @param entity mob to check
+--! @param pos position to save, nil to reset pos
+-------------------------------------------------------------------------------
+function direction_control.redirect_safe_pos(entity, pos)
+
+	if pos ~= nil then
+		dbg_mobf.pmovement_lvl2(
+				"MOBF:\tstoring redirection pos " .. printpos(pos))
+		entity.dynamic_data.movement.redirect_safe_pos = pos
+		entity.dynamic_data.movement.redirect_safe_pos_distance = 
+				mobf_calc_distance(entity:getbasepos(), pos)
+	else
+		dbg_mobf.pmovement_lvl2(
+				"MOBF:\tresetting redirection pos")
+		entity.dynamic_data.movement.redirect_safe_pos = nil
+		entity.dynamic_data.movement.redirect_safe_pos_distance = 9999
+	end
+end
+
+function direction_control.best_chance_redirect(entity, movement_state, new_pos, limit)
+
+	if new_pos == nil then
+		new_pos = direction_control.get_pos_around(entity, movement_state)
+	end
+	
+	
+	-- we found a position now try to get an acceleration to it
+	if new_pos ~= nil then
+	
+		dbg_mobf.pmovement_lvl2(
+				"MOBF:\t-->trying to redirect to safe position .. " .. printpos(new_pos))
+				
+		
+		local found_good, best_tried_accel, best_quality =
+			direction_control.get_acceleration_to(entity, movement_state,
+				new_pos, limit)
+		
+		if not found_good then
+		
+			-- check if best try was at least as good as now
+			if environment.evaluate_state(best_quality,
+				{ old_state=movement_state.current_quality }) then
+				dbg_mobf.pmovement_lvl2(
+					"MOBF:\t" .. T_YELLOW .. "redirecting to acceptable pos" .. C_RESET)
+				movement_state.accel_to_set = best_tried_accel
+				movement_state.changed = true
+			else
+				dbg_mobf.pmovement_lvl2(
+					"MOBF:\t" .. T_RED .. "didn't find a way to redirect trying random" .. C_RESET)
+				movement_state.force_change = true
+				return false
+			end
+		else
+			dbg_mobf.pmovement_lvl2(
+					"MOBF:\t" .. T_GREEN .. "redirecting to good pos" .. C_RESET)
+		end
+		
+		-- we did update movement_state using a valid new acceleration
+		direction_control.redirect_safe_pos(entity, new_pos)
+		return false
+	end
+
+	return true
+end
+
+-------------------------------------------------------------------------------
 -- name: get_random_acceleration(entity, predicted_pos, 
 --	predicted_quality, movement_state)
 --
@@ -302,11 +454,12 @@ end
 --! @memberof direction_control
 --! @private
 --
---! @param entity
---! @param predicted_pos
---! @param predicted_quality
---! @param movement_state
---! @return true/false
+--! @param entity mob to check
+--! @param predicted_pos position the mob will be
+--! @param predicted_quality quality of predicted position
+--! @param movement_state current movement state
+--! @param mob_is_safe mob is at save pos atm
+--! @return true = nothing done in here, false = all done stop other checks
 -------------------------------------------------------------------------------
 function direction_control.handle_drop_pending(entity, predicted_pos, 
 	predicted_quality, movement_state, mob_is_safe)
@@ -314,64 +467,31 @@ function direction_control.handle_drop_pending(entity, predicted_pos,
 	local drop_pending =
 			(predicted_quality.geometry_quality <= GQ_PARTIAL and
 			 predicted_quality.center_geometry_quality <= GQ_NONE) or
-			 predicted_quality.surface_quality_min <= SQ_WATER
+			 predicted_quality.surface_quality_min <= SQ_WATER_3P
 			 
 	
 	if drop_pending then
 		dbg_mobf.pmovement_lvl2(
 				"MOBF: mob " .. entity.data.name
-				.. " is going to walk on water or drop")
+				.. " is going to " .. T_YELLOW .. " walk on water or drop" .. C_RESET)
+		dbg_mobf.pmovement_lvl2(
+				"MOBF: state:\n" .. predicted_quality:tostring())
 		entity.dynamic_data.movement.drop_was_pending = true
 		
 		-- try to find a position around where mob would be safe
 		
-		local new_pos = entity.dynamic_data.movement.last_drop_was_pending_safe_pos
-		local last_distance = entity.dynamic_data.movement.last_drop_was_pending_safe_pos_distance
-		
-		if new_pos ~= nil then
-			local new_distance = mobf_calc_distance(predicted_pos, new_pos)
+		local already_done, new_pos =
+			direction_control.redirect_safe_pos_callback(entity, movement_state,
+															predicted_pos, true)
 			
-			if new_distance < last_distance then
-				-- still on our way to safe position don't do anything
-				entity.dynamic_data.movement.last_drop_was_pending_safe_pos_distance = new_distance
-				return
-			end
-			
-			-- we're to far away from our target find a new one
-			if new_distance > 1 then
-				new_pos = nil
-			end
+		if already_done then
+			return false
 		end
-				
-		entity.dynamic_data.movement.last_drop_was_pending_safe_pos = nil
-		entity.dynamic_data.movement.last_drop_was_pending_safe_pos_distance = 9999
-		
-		new_pos = direction_control.get_pos_around(entity, movement_state)
 		
 		
-		-- we found a position now try to get an acceleration to it
-		if new_pos ~= nil then
-		
-			dbg_mobf.pmovement_lvl2(
-					"MOBF: trying to redirect to safe position .. " .. printpos(new_pos))
-					
-			
-			if not direction_control.get_acceleration_to(entity, movement_state,
-				new_pos, LT_EDGE_POS_POSSIBLE_CENTER) then
-			
-				-- try to find an accel which will result in some quality as good as current
-				if not direction_control.get_acceleration_to(entity, movement_state,
-					new_pos, { old_state=movement_state.current_quality }) then
-					movement_state.force_change = true
-					return false
-				end
-			end
-			
-			-- we did update movement_state using a valid new acceleration
-			entity.dynamic_data.movement.last_drop_was_pending_safe_pos = new_pos
-			entity.dynamic_data.movement.last_drop_was_pending_safe_pos_distance = 
-				mobf_calc_distance(predicted_pos, new_pos)
-			return true
+		if not direction_control.best_chance_redirect(entity, movement_state,
+			new_pos, LT_EDGE_POS_POSSIBLE_CENTER) then
+			return false
 		end
 		
 		--no suitable pos found, if mob is safe atm just stop it
@@ -395,24 +515,175 @@ function direction_control.handle_drop_pending(entity, predicted_pos,
 				movement_state.accel_to_set = {x=0,y=nil,z=0}
 				dbg_mobf.pmovement_lvl2("MOBF: stopping at safe pos")
 				movement_state.changed = true
-				return true
+				return false
 			end
 		end
 
 		-- bad case we don't know how to save this mob, let's try our chances
-		dbg_mobf.pmovement_lvl2("MOBF: mob " .. entity.data.name ..
-			" didn't find a way to fix drop trying random")
+		dbg_mobf.pmovement_lvl2("MOBF:" .. T_RED .. " mob " .. entity.data.name ..
+			" didn't find a way to fix drop trying random" .. C_RESET)
 			
 		--make mgen change direction randomly
 		movement_state.force_change = true
 		return true
 	else
-		entity.dynamic_data.movement.drop_was_pending = false
-		entity.dynamic_data.movement.last_drop_was_pending_safe_pos = nil
 		return true
 	end
 end
 
+
+-------------------------------------------------------------------------------
+-- name: get_random_acceleration(entity, predicted_pos, 
+--	predicted_quality, movement_state)
+--
+--! @brief handle drop state
+--! @memberof direction_control
+--! @private
+--
+--! @param entity mob to check
+--! @param predicted_pos position the mob will be
+--! @param predicted_quality quality of predicted position
+--! @param movement_state current movement state
+--! @param mob_is_safe mob is at save pos atm
+--! @return true/false
+-------------------------------------------------------------------------------
+function direction_control.handle_collision_pending(entity, predicted_pos, 
+	predicted_quality, movement_state, mob_is_safe)
+	
+	if predicted_quality.media_quality == MQ_IN_MEDIA and
+		movement_state.current_quality.media_quality == MQ_IN_MEDIA then
+		return true
+	end
+	
+	dbg_mobf.pmovement_lvl2("MOBF: " ..entity.data.name .. " colliding or collision pending "
+			.. printpos(movement_state.basepos) .. "-->"
+			.. printpos(predicted_pos))
+			
+	-- we're ok now try to avoid collision
+	if movement_state.current_quality.media_quality == MQ_IN_MEDIA then
+	
+		-- try jumping up
+		if math.random() < entity.dynamic_data.movement.mpattern.jump_up then
+			local pos_above = {x=predicted_pos.x, y = predicted_pos.y+1, z=predicted_pos.z}
+			
+			local quality_above = environment.pos_quality(pos_above, entity)
+			
+			if environment.evaluate_state(quality_above, LT_EDGE_POS) then
+				dbg_mobf.pmovement_lvl2("MOBF:\t" .. T_PURPLE .. "jumping (TODO)" .. C_RESET)
+				
+				local current_speed_vec = entity.object:getvelocity()
+				entity.object:setvelocity({x=current_speed_vec.x,y=6,z=current_speed_vec.z})
+				movement_state.changed = true
+				return false
+			else
+				dbg_mobf.pmovement_lvl2("MOBF:\t" .. T_PURPLE .. "tried to jump but quality is:" .. C_RESET .. quality_above:tostring())
+			end
+		end
+
+		dbg_mobf.pmovement_lvl2("MOBF:\tforce random acceleration change to avoid collision")
+		movement_state.force_change = true
+		movement_generic.slow_down_xz(entity, 0.5)
+		
+	-- current pos is already colliding try redirecting to somewhere more good
+	else
+		dbg_mobf.pmovement_lvl2("MOBF:\t" .. T_YELLOW .. "mob already colliding, try to find better pos" .. C_RESET)
+		
+		-- check if we're already redirecting
+		local already_done, new_pos =
+			direction_control.redirect_safe_pos_callback(entity, movement_state,
+															predicted_pos, false)
+															
+		if already_done then
+			movement_state.changed = true
+			return false
+		end
+	
+		--try to redirect to some acceptable position
+		if not direction_control.best_chance_redirect(entity, movement_state,
+			new_pos, LT_EDGE_POS) then
+			return false
+		end
+		
+		--bad no good pos around 
+		dbg_mobf.pmovement_lvl2("MOBF: " .. T_RED .. "mob " ..entity.data.name
+				.. " colliding atm but didn't find a way to solve it" .. printpos(new_pos) .. C_RESET)
+		movement_state.force_change = true
+	end
+
+	return true
+end
+
+function direction_control.handle_surface_check(entity,pos_predicted, 
+	pos_predicted_quality, movement_state)
+	
+		local suboptimal_surface =
+		environment.evaluate_state(	pos_predicted_quality,
+				{	old_state=nil,
+					min_media=MQ_IN_MEDIA,
+					min_geom=GQ_PARTIAL,
+					min_geom_center=nil,
+					min_min_surface=SQ_WRONG,
+					min_max_surface=SQ_POSSIBLE,
+					min_center_surface=nil	})
+
+	if suboptimal_surface then
+		dbg_mobf.pmovement_lvl2(
+			"MOBF: suboptimal positiond detected trying to find better pos")
+		--try to find a better position at same level
+		local new_pos =
+			environment.get_suitable_pos_same_level(
+				movement_state.basepos,1,entity)
+
+		if new_pos ~= nil then
+			dbg_mobf.pmovement_lvl2(
+				"MOBF: redirecting to better position .. " .. printpos(new_pos))
+			movement_state.accel_to_set = movement_generic.get_accel_to(new_pos,entity)
+			movement_state.changed = true
+			return
+		else
+			-- pos isn't critical don't do anything
+			return
+		end
+	end
+
+	local geom_ok =
+		environment.evaluate_state(	pos_predicted_quality,
+				{	old_state=nil,
+					min_media=MQ_IN_MEDIA,
+					min_geom=GQ_PARTIAL,
+					min_geom_center=nil,
+					min_min_surface=nil,
+					min_max_surface=nil,
+					min_center_surface=nil	})
+	if geom_ok and
+		pos_predicted_quality.surface_quality_max == SQ_WRONG then
+		dbg_mobf.pmovement_lvl2(
+			"MOBF: wrong surface detected trying to find better pos")
+		local new_pos =
+			environment.get_suitable_pos_same_level(
+				movement_state.basepos,1,entity)
+
+		if new_pos == nil then
+			new_pos =
+				environment.get_suitable_pos_same_level(
+					movement_state.basepos,2,entity)
+		end
+
+		if new_pos ~= nil then
+			dbg_mobf.pmovement_lvl2(
+				"MOBF: redirecting to better position .. " .. printpos(new_pos))
+			movement_state.accel_to_set =
+				movement_generic.get_accel_to(new_pos,entity)
+			movement_state.changed = true
+			return
+		else
+			--try generic
+			movement_state.force_change = true
+			return
+		end
+	end
+		
+end
 
 -------------------------------------------------------------------------------
 -- name: precheck_movement(entity,movement_state,pos_predicted,pos_predicted_quality)
@@ -439,225 +710,64 @@ function direction_control.precheck_movement(
 		environment.evaluate_state(pos_predicted_quality, LT_GOOD_POS)
 
 	-- ok predicted pos isn't as good as we'd wanted it to be let's find out why
-	if not prefered_quality then
-
-		local mob_is_safe =
-			environment.evaluate_state(pos_predicted_quality, LT_SAFE_POS)
-
-		if movement_state.current_quality == nil then
-			movement_state.current_quality = environment.pos_quality(
-												movement_state.basepos,
-												entity
-												)
-		end
-
-		if environment.compare_state(
-			movement_state.current_quality,
-			pos_predicted_quality) > 0
-			and
-			pos_predicted_quality.media_quality == MQ_IN_MEDIA then
-			--movement state is better than old one so we're fine
-			return
-		end
-
-		local walking_at_edge =
-			environment.evaluate_state(pos_predicted_quality, LT_SAFE_EDGE_POS)
-
-		if walking_at_edge then
-			--mob center still on ground but at worst walking at edge, do nothing
-			return
-		end
-		
-		if (pos_predicted_quality.geometry_quality == GQ_NONE) then
-			dbg_mobf.pmovement_lvl2("MOBF: mob " .. entity.data.name .. " is dropping")
-			return
-		end
-		
-		
-		if not direction_control.handle_drop_pending(entity, pos_predicted, 
-			pos_predicted_quality, movement_state, mob_is_safe) then
-			return
-		end
-
-		--check if mob is going to be somewhere where it can't be
-		if pos_predicted_quality.media_quality ~= MQ_IN_MEDIA then
-			dbg_mobf.pmovement_lvl2("MOBF: collision pending "
-				.. printpos(movement_state.basepos) .. "-->"
-				.. printpos(pos_predicted))
-
-			--try to find a better position at same level
-			local new_pos =
-				environment.get_suitable_pos_same_level(movement_state.basepos,1,entity)
-
-			if new_pos == nil then
-				new_pos =
-					environment.get_suitable_pos_same_level(
-						movement_state.basepos,1,entity,true)
-			end
-
-			--there is at least one direction to go
-			if new_pos ~= nil then
-				dbg_mobf.pmovement_lvl2("MOBF: mob " ..entity.data.name
-					.. " redirecting to:" .. printpos(new_pos))
-				local new_predicted_state = nil
-				local new_predicted_pos = nil
-				for i=1,5,1 do
-					movement_state.accel_to_set =
-						movement_generic.get_accel_to(new_pos,entity)
-					--TODO check if acceleration is enough
-					new_predicted_pos =
-						movement_generic.predict_enter_next_block( entity,
-												movement_state.basepos,
-												movement_state.current_velocity,
-												movement_state.accel_to_set)
-					new_predicted_state = environment.pos_quality(
-												new_predicted_pos,
-												entity
-												)
-					if new_predicted_state.media_quality == MQ_IN_MEDIA then
-						break
-					end
-				end
-				if new_predicted_state.media_quality ~= MQ_IN_MEDIA then
-					movement_state.accel_to_set = movement_state.current_acceleration
-
-					dbg_mobf.pmovement_lvl2("MOBF: mob " ..entity.data.name
-						.. " acceleration not enough to avoid collision try to jump")
-					if math.random() <
-						( entity.dynamic_data.movement.mpattern.jump_up *
-							PER_SECOND_CORRECTION_FACTOR) then
-						local upper_pos = {
-										x= pos_predicted.x,
-										y= pos_predicted.y +1,
-										z= pos_predicted.z
-										}
-
-						local upper_quality = environment.pos_quality(
-													upper_pos,
-													entity
-													)
-
-						if environment.evaluate_state(	upper_quality,LT_EDGE_POS) then
-
-							entity.object:setvelocity(
-									{x=movement_state.current_velocity.x,
-									y=5,
-									z=movement_state.current_velocity.z})
-						end
-					end
-				end
-				movement_state.changed = true
-				return
-			end
-
-			--try to find a better position above
-			new_pos = environment.get_suitable_pos_same_level({ x=movement_state.basepos.x,
-														 y=movement_state.basepos.y+1,
-														 z=movement_state.basepos.z},
-														1,entity)
-
-			if new_pos == nil then
-				new_pos = environment.get_suitable_pos_same_level({ x=movement_state.basepos.x,
-											 y=movement_state.basepos.y+1,
-											 z=movement_state.basepos.z},
-											1,entity)
-			end
-
-			if new_pos ~= nil then
-				dbg_mobf.pmovement_lvl2("MOBF: mob " ..entity.data.name
-					.. " seems to be locked in, jumping to:" .. printpos(new_pos))
-
-				entity.object:setvelocity({x=0,
-											y=5.5,
-											z=0})
-				movement_state.accel_to_set = movement_generic.get_accel_to(new_pos,entity)
-				movement_state.changed = true
-				return
-			end
-
-			dbg_mobf.pmovement_lvl2("MOBF: mob " ..entity.data.name
-					.. " unable to fix collision try random")
-			--a collision is going to happen force change of direction
-			movement_state.force_change = true
-			return
-		end
-		
-		-- don't do follow up checks if there alreas is a fix pending
-		if movement_state.changed then
-			return
-		end
-
-		local suboptimal_surface =
-			environment.evaluate_state(	pos_predicted_quality,
-					{	old_state=nil,
-						min_media=MQ_IN_MEDIA,
-						min_geom=GQ_PARTIAL,
-						min_geom_center=nil,
-						min_min_surface=SQ_WRONG,
-						min_max_surface=SQ_POSSIBLE,
-						min_center_surface=nil	})
-
-		if suboptimal_surface then
-			dbg_mobf.pmovement_lvl2(
-				"MOBF: suboptimal positiond detected trying to find better pos")
-			--try to find a better position at same level
-			local new_pos =
-				environment.get_suitable_pos_same_level(
-					movement_state.basepos,1,entity)
-
-			if new_pos ~= nil then
-				dbg_mobf.pmovement_lvl2(
-					"MOBF: redirecting to better position .. " .. printpos(new_pos))
-				movement_state.accel_to_set = movement_generic.get_accel_to(new_pos,entity)
-				movement_state.changed = true
-				return
-			else
-				-- pos isn't critical don't do anything
-				return
-			end
-		end
-
-		local geom_ok =
-			environment.evaluate_state(	pos_predicted_quality,
-					{	old_state=nil,
-						min_media=MQ_IN_MEDIA,
-						min_geom=GQ_PARTIAL,
-						min_geom_center=nil,
-						min_min_surface=nil,
-						min_max_surface=nil,
-						min_center_surface=nil	})
-		if geom_ok and
-			pos_predicted_quality.surface_quality_max == SQ_WRONG then
-			dbg_mobf.pmovement_lvl2(
-				"MOBF: wrong surface detected trying to find better pos")
-			local new_pos =
-				environment.get_suitable_pos_same_level(
-					movement_state.basepos,1,entity)
-
-			if new_pos == nil then
-				new_pos =
-					environment.get_suitable_pos_same_level(
-						movement_state.basepos,2,entity)
-			end
-
-			if new_pos ~= nil then
-				dbg_mobf.pmovement_lvl2(
-					"MOBF: redirecting to better position .. " .. printpos(new_pos))
-				movement_state.accel_to_set =
-					movement_generic.get_accel_to(new_pos,entity)
-				movement_state.changed = true
-				return
-			else
-				--try generic
-				movement_state.force_change = true
-				return
-			end
-		end
-
-		dbg_mobf.pmovement_lvl2("MOBF: Unhandled suboptimal state:"
-			.. pos_predicted_quality.tostring(pos_predicted_quality))
-		movement_state.force_change = true
+	if prefered_quality then
+		direction_control.redirect_safe_pos(entity, nil)
+		return
 	end
+
+	local mob_is_safe =
+		environment.evaluate_state(pos_predicted_quality, LT_SAFE_POS)
+
+	if movement_state.current_quality == nil then
+		movement_state.current_quality = environment.pos_quality(
+											movement_state.basepos,
+											entity
+											)
+	end
+
+	if environment.compare_state(
+		movement_state.current_quality,
+		pos_predicted_quality) > 0
+		and
+		pos_predicted_quality.media_quality == MQ_IN_MEDIA then
+		--movement state is better than old one so we're fine
+		return
+	end
+
+	local walking_at_edge =
+		environment.evaluate_state(pos_predicted_quality, LT_SAFE_EDGE_POS)
+
+	if walking_at_edge then
+		--mob center still on ground but at worst walking at edge, do nothing
+		return
+	end
+	
+	if (pos_predicted_quality.geometry_quality == GQ_NONE) then
+		dbg_mobf.pmovement_lvl2("MOBF: mob " .. entity.data.name .. " is dropping")
+		return
+	end
+	
+	
+	if not direction_control.handle_drop_pending(entity, pos_predicted, 
+		pos_predicted_quality, movement_state, mob_is_safe) then
+		return
+	end
+
+	if not direction_control.handle_collision_pending(entity, pos_predicted,
+		pos_predicted_quality, movement_state) then
+		return
+	end
+	
+
+	-- todo reimplement
+	--if not direction_control.handle_surface_check(entity,pos_predicted, 
+	--	pos_predicted_quality, movement_state) then
+	--	return
+	--end
+
+	dbg_mobf.pmovement_lvl2("MOBF: Unhandled suboptimal state:"
+		.. pos_predicted_quality.tostring(pos_predicted_quality))
+	movement_state.force_change = true
 end
 
 -------------------------------------------------------------------------------
@@ -671,8 +781,7 @@ end
 --! @return movement_state is modified!
 -------------------------------------------------------------------------------
 function direction_control.random_movement_handler(entity,movement_state)
-	dbg_mobf.pmovement_lvl3("MOBF: >>> random movement handler called")
-	
+
 	local rand_value = math.random()
 	local max_value =
 		entity.dynamic_data.movement.mpattern.random_acceleration_change
@@ -692,8 +801,12 @@ function direction_control.random_movement_handler(entity,movement_state)
 			printpos(movement_state.current_acceleration).." to "..
 			printpos(movement_state.accel_to_set))
 	else
-		dbg_mobf.pmovement_lvl3("MOBF:<<<" .. entity.data.name ..
-			" not changing speed random: " .. rand_value .." >= " .. max_value ..
-			" or already changed: " .. dump(movement_state.changed))
+		if movement_state.changed then
+			dbg_mobf.pmovement_lvl3("MOBF:<<< " .. entity.data.name ..
+				" not random changing speed already changed: " .. dump(movement_state.changed))
+		else
+			dbg_mobf.pmovement_lvl3("MOBF:<<< " .. entity.data.name ..
+				" not random changing speed: " .. rand_value .." >= " .. max_value)
+		end
 	end
 end

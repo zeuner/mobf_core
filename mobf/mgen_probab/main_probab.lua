@@ -151,7 +151,7 @@ function movement_gen.callback(entity)
 
 	if movement_state.changed then
 		minetest.log(LOGLEVEL_WARNING,
-			"MOBF:position got fixed ".. entity.data.name)
+			"MOBF: +position got fixed ".. entity.data.name)
 	end
 
 	---------------------------------------------------------------------------
@@ -161,7 +161,7 @@ function movement_gen.callback(entity)
 	--                                                                       --
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
-	dbg_mobf.pmovement_lvl3("MOBF: movement hard limits check for mob "..
+	dbg_mobf.pmovement_lvl3("MOBF: +movement hard limits check for mob "..
 		entity.data.name .. " "..printpos(movement_state.basepos))
 
 	movement_gen.fix_runaway(entity,movement_state)
@@ -181,7 +181,7 @@ function movement_gen.callback(entity)
 	--                                                                       --
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
-	dbg_mobf.pmovement_lvl3("MOBF: movement check for mob ".. entity.data.name
+	dbg_mobf.pmovement_lvl3("MOBF: +movement check for mob ".. entity.data.name
 		.. " "..printpos(movement_state.basepos))
 
 	--skip if movement already got changed
@@ -204,7 +204,7 @@ function movement_gen.callback(entity)
 
 		local pos_predicted_quality = environment.pos_quality(pos_predicted,entity)
 
-		dbg_mobf.pmovement_lvl3("MOBF: Pos pred quality: ".. entity.data.name
+		dbg_mobf.pmovement_lvl3("MOBF: INFO: pos predicted quality: ".. entity.data.name
 			.. ": " .. pos_predicted_quality:shortstring())
 
 		-- Y-Movement
@@ -230,8 +230,8 @@ function movement_gen.callback(entity)
 	--                                                                       --
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
-	dbg_mobf.pmovement_lvl3("MOBF: randomized movement for mob "..
-					entity.data.name .. " "..printpos(movement_state.basepos))
+	--dbg_mobf.pmovement_lvl3("MOBF: randomized movement for mob "..
+	--				entity.data.name .. " "..printpos(movement_state.basepos))
 
 	--do randomized changes if not fighting
 	height_level_control.random_movement_handler(entity,movement_state)
@@ -293,7 +293,8 @@ function movement_gen.apply_movement_changes(entity,movement_state)
 		end
 
 		dbg_mobf.pmovement_lvl2("MOBF: setting acceleration to "
-										..printpos(movement_state.accel_to_set))
+									.. printpos(movement_state.accel_to_set) 
+									.. " vel: " .. printpos(entity.object:getvelocity()))
 										
 		-- todo check for harsh direction changes
 		entity.dynamic_data.movement.acceleration = movement_state.accel_to_set
@@ -352,15 +353,15 @@ function movement_gen.fix_runaway(entity,movement_state)
 	local xzspeed = mobf_calc_scalar_speed(movement_state.current_velocity.x,
 											movement_state.current_velocity.z)
 
-	dbg_mobf.pmovement_lvl3("MOBF: checkrunaway x=" ..
+	dbg_mobf.pmovement_lvl3("MOBF:\tcheckrunaway x=" ..
 							movement_state.current_velocity.x ..
 							" z=" ..movement_state.current_velocity.z ..
 							" xz=" .. xzspeed ..
 							" maximum=" .. entity.data.movement.max_speed)
 
 	if xzspeed > entity.data.movement.max_speed then
-		dbg_mobf.pmovement_lvl3("MOBF: too fast! vxz=" .. xzspeed)
-		dbg_mobf.pmovement_lvl3("MOBF: current acceleration:" ..
+		dbg_mobf.pmovement_lvl3("MOBF:\ttoo fast! vxz=" .. xzspeed)
+		dbg_mobf.pmovement_lvl3("MOBF:\tcurrent acceleration:" ..
 								printpos(movement_state.current_acceleration))
 
 		local direction = mobf_calc_yaw(movement_state.current_velocity.x,
@@ -377,7 +378,7 @@ function movement_gen.fix_runaway(entity,movement_state)
 		movement_state.accel_to_set = {x=0,z=0}
 		movement_state.changed = true
 
-		dbg_mobf.pmovement_lvl2("MOBF: fix runaway new acceleration:" ..
+		dbg_mobf.pmovement_lvl2("MOBF:\tfix runaway new acceleration:" ..
 									printpos(movement_state.accel_to_set))
 	end
 end
@@ -396,7 +397,7 @@ function movement_gen.fix_to_slow(entity,movement_state)
 	local xzspeed = mobf_calc_scalar_speed(movement_state.current_velocity.x,
 											movement_state.current_velocity.z)
 
-	dbg_mobf.pmovement_lvl3("MOBF: checktoslow x=" ..
+	dbg_mobf.pmovement_lvl3("MOBF:\tchecktoslow x=" ..
 							movement_state.current_velocity.x ..
 							" z=" ..movement_state.current_velocity.z ..
 							" xz=" .. xzspeed ..
@@ -409,7 +410,7 @@ function movement_gen.fix_to_slow(entity,movement_state)
 		xzspeed == nil or
 		xzspeed == 0 then
 
-		dbg_mobf.pmovement_lvl2("MOBF: too slow! vxz=" .. xzspeed)
+		dbg_mobf.pmovement_lvl2("MOBF:\ttoo slow! vxz=" .. xzspeed)
 		--use normal speed change handling
 		movement_state.force_change = true
 	end
