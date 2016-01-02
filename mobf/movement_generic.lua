@@ -33,7 +33,7 @@ movement_generic = {}
 --! @return { x,y,z } random speed directed to new_pos
 -------------------------------------------------------------------------------
 --
-function movement_generic.get_accel_to(new_pos, entity, ymovement, accel)
+function movement_generic.get_accel_to(new_pos, entity, ymovement, accel, xz_yaw_offset)
 
 	if new_pos == nil or entity == nil then
 		minetest.log(LOGLEVEL_CRITICAL,
@@ -83,6 +83,9 @@ function movement_generic.get_accel_to(new_pos, entity, ymovement, accel)
 		end
 
 	else
+		if xz_yaw_offset ~= nil then
+				xz_direction = xz_direction + xz_yaw_offset
+		end
 		new_accel_vector =
 			mobf_calc_vector_components(xz_direction,absolute_accel)
 		new_accel_vector.y = yaccel
@@ -128,16 +131,17 @@ end
 -------------------------------------------------------------------------------
 function movement_generic.predict_next_block(pos,velocity,acceleration)
 
-	local prediction_time = 2
+	local prediction_time = 1
 
 	local pos_predicted = movement_generic.calc_new_pos(pos,
 								acceleration,
 								prediction_time,
 								velocity
 								)
-	local count = 1
+	local count = 2
 
-	--check if after prediction time we would have traveled more than one block and adjust to not predict to far
+	-- check if after prediction time we would have traveled more than half 
+	-- of a block and adjust to not predict to far
 	while mobf_calc_distance(pos,pos_predicted) > 1 do
 
 		pos_predicted = movement_generic.calc_new_pos(pos,
@@ -147,7 +151,9 @@ function movement_generic.predict_next_block(pos,velocity,acceleration)
 								)
 
 		if (prediction_time - (count*0.1)) < 0 then
-			minetest.log(LOGLEVEL_WARNING,"MOBF: Bug!!!! didn't find a suitable prediction time. Mob will move more than one block within prediction period")
+			minetest.log(LOGLEVEL_WARNING,"MOBF: Bug!!!! didn't find a suitable" ..
+				" prediction time. Mob will move more than one block " ..
+				" within prediction period")
 			break
 		end
 
@@ -223,4 +229,29 @@ function movement_generic.predict_enter_next_block(entity,pos,velocity,accelerat
 								)
 
 	return pos_predicted
+end
+
+-------------------------------------------------------------------------------
+-- @function [parent=#movement_generic] slow_down_xz(entity, factor)
+--
+--! @brief predict next block based on pos velocity and acceleration
+--
+--! @param entity entitiy to do prediction for
+--! @param factor factor to change current velocity to
+-------------------------------------------------------------------------------
+function movement_generic.slow_down_xz(entity, factor)
+	
+	local current_speed_vec = entity.object:getvelocity()
+	local current_speed = mobf_calc_scalar_speed(current_speed_vec.x, current_speed_vec.z)
+	
+	local target_speed = current_speed * factor
+	
+	local target_speed_vec = mobf_calc_vector_components( 
+								mobf_calc_yaw(current_speed_vec.x,current_speed_vec.z),
+								target_speed)
+								
+	entity.object:setvelocity({x=target_speed_vec.x,
+								y=current_speed_vec.y,
+								z=target_speed_vec.z})
+	
 end
