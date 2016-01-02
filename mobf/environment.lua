@@ -42,6 +42,16 @@ function environment.get_pos_same_level(pos_raw,maxsearcharea,entity,checkfunc)
 	dbg_mobf.environment_lvl2("MOBF: --> get_pos_same_level "
 		.. printpos(pos_raw))
 	local pos = mobf_round_pos(pos_raw)
+	
+	-- first check rounded pos
+	local pos_quality = environment.pos_quality(pos,entity)
+	local pos_state = checkfunc(pos_quality)
+	
+	if pos_state then
+		dbg_mobf.environment_lvl3("MOBF: rounded starting pos is already good enough!")
+		return pos
+	end
+	
 
 	dbg_mobf.environment_lvl3("MOBF: Starting pos is "..printpos(pos)
 	.." max search area is "..maxsearcharea)
@@ -577,7 +587,9 @@ end
 --!                                5 = solid
 --!                                0 = not evaluated
 --!    geometry_quality =        100 = full contact
---!                               60 = partial contact
+--!                               60 = partial contact (1 point missing)
+--!                               55 = partial contact (2 points missing)
+--!                               50 = partial contact (3 points missing)
 --!                               30 = no contact
 --!                                0 = not evaluated
 --!    center_geometry_quality = 100 = contact
@@ -635,7 +647,8 @@ function environment.pos_quality(pos,entity)
 
 						retval = retval .."\n\tgeometry_quality: (" .. state.geometry_quality .. ") "
 						if state.geometry_quality == 100 then retval = retval .. "full contact" end
-						if state.geometry_quality ==  60 then retval = retval .. "partial contact" end
+						if state.geometry_quality >= 50 and
+							state.geometry_quality <= 60 then retval = retval .. "partial contact" end
 						if state.geometry_quality ==  30 then retval = retval .. "no contact" end
 						if state.geometry_quality ==   0 then retval = retval .. "not evaluated" end
 
@@ -648,6 +661,8 @@ function environment.pos_quality(pos,entity)
 						if state.surface_quality_min == 100 then retval = retval .. "ok" end
 						if state.surface_quality_min ==  60 then retval = retval .. "possible" end
 						if state.surface_quality_min ==  30 then retval = retval .. "wrong" end
+						if state.surface_quality_min ==  20 then retval = retval .. "above water" end
+						if state.surface_quality_min ==  15 then retval = retval .. "above water" end
 						if state.surface_quality_min ==  10 then retval = retval .. "above water" end
 						if state.surface_quality_min ==   0 then retval = retval .. "not evaluated" end
 
@@ -655,6 +670,8 @@ function environment.pos_quality(pos,entity)
 						if state.surface_quality_max == 100 then retval = retval .. "ok" end
 						if state.surface_quality_max ==  60 then retval = retval .. "possible" end
 						if state.surface_quality_max ==  30 then retval = retval .. "wrong" end
+						if state.surface_quality_max ==  20 then retval = retval .. "above water" end
+						if state.surface_quality_max ==  15 then retval = retval .. "above water" end
 						if state.surface_quality_max ==  10 then retval = retval .. "above water" end
 						if state.surface_quality_max ==   0 then retval = retval .. "not evaluated" end
 
@@ -756,7 +773,8 @@ function environment.pos_quality(pos,entity)
 		--check geometry and surface quality
 		lastpos = nil
 		local have_contact    = false
-		local have_no_contact = false
+		local have_no_contact = 0
+		local above_water = 0
 
 		table.insert(cornerpositions,pos)
 
@@ -805,6 +823,9 @@ function environment.pos_quality(pos,entity)
 					if current_surface == "wrong_surface" then
 						if	belowname == "default:water_source" or
 							belowname == "default:water_flowing" then
+							
+							above_water = above_water +1
+							
 							if retval.surface_quality_max < 10 then
 								retval.surface_quality_max = 10
 							end
@@ -834,24 +855,38 @@ function environment.pos_quality(pos,entity)
 					if mobf_pos_is_same(pos,cornerpositions[i]) then
 						retval.center_geometry_quality = 30
 					end
-					have_no_contact = true
+					have_no_contact = have_no_contact + 1
 				end
 			end
 
 			lastpos = cornerpositions[i]
 		end
 
-		if have_contact and not have_no_contact then
+		if have_contact and have_no_contact == 0 then
 			retval.geometry_quality = 100
-		end
-
-		if have_contact and have_no_contact then
-			retval.geometry_quality = 60
-		end
-
-		if not have_contact and have_no_contact then
+		elseif have_contact and have_no_contact > 0 then
+			retval.geometry_quality = 65 - (have_no_contact * 5)
+		elseif not have_contact then
 			retval.geometry_quality = 30
 		end
+		
+		-- more detailed above water information
+		if above_water > 0 and retval.surface_quality_min == 10 then
+			if above_water == 1 then
+				retval.surface_quality_min = 20
+			elseif above_water == 2 then
+				retval.surface_quality_min = 15
+			end
+		end
+		
+		if above_water > 0 and retval.surface_quality_max == 10 then
+			if above_water == 1 then
+				retval.surface_quality_max = 20
+			elseif above_water == 2 then
+				retval.surface_quality_max = 15
+			end
+		end
+		
 	end
 
 	return retval
