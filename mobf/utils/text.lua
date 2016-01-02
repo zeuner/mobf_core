@@ -19,6 +19,40 @@
 --! @ingroup framework_int
 --! @{
 
+T_BLACK = "\027[0;30m"
+T_RED    ="\027[0;31m"
+T_GREEN  ="\027[0;32m"
+T_YELLOW ="\027[0;33m"
+T_BLUE   ="\027[0;34m"
+T_PURPLE ="\027[0;35m"
+T_CYAN   ="\027[0;36m"
+T_WHITE  ="\027[0;37m"
+B_BLACK  ="\027[1;30m"
+B_RED    ="\027[1;31m"
+B_GREEN  ="\027[1;32m"
+B_YELLOW ="\027[1;33m"
+B_BLUE   ="\027[1;34m"
+B_PURPLE ="\027[1;35m"
+B_CYAN   ="\027[1;36m"
+B_WHITE  ="\027[1;37m"
+U_BLACK  ="\027[4;30m"
+U_RED    ="\027[4;31m"
+U_GREEN  ="\027[4;32m"
+U_YELLOW ="\027[4;33m"
+U_BLUE   ="\027[4;34m"
+U_PURPLE ="\027[4;35m"
+U_CYAN   ="\027[4;36m"
+U_WHITE  ="\027[4;37m"
+BK_BLACK ="\027[40m"
+BK_RED   ="\027[41m"
+BK_GREEN ="\027[42m"
+BK_YELLOW="\027[43m"
+BK_BLUE  ="\027[44m"
+BK_PURPLE="\027[45m"
+BK_CYAN  ="\027[46m"
+BK_WHITE ="\027[47m"
+C_RESET  ="\027[0m"
+
 -------------------------------------------------------------------------------
 -- name: printpos(pos)
 --
