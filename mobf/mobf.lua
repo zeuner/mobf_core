@@ -259,6 +259,9 @@ end
 -------------------------------------------------------------------------------
 function mobf.get_basepos(entity)
 	local pos = entity.object:getpos()
+	if (nil == pos) then
+		return pos
+	end
 	local nodeatpos = minetest.get_node(pos)
 
 	dbg_mobf.mobf_core_helper_lvl3("MOBF: " .. entity.data.name
