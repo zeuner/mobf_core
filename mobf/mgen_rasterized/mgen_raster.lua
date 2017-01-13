@@ -44,7 +44,7 @@ function mgen_raster.stop(entity)
 	
 	entity.dynamic_data.movement.target = nil
 	entity.object:setvelocity({x=0,y=0,z=0})
-	entity.object:setacceleration({x=0,y=defgrav,z=0})
+	mobf_physics.setacceleration(entity,{x=0,y=defgrav,z=0})
 end
 
 -------------------------------------------------------------------------------

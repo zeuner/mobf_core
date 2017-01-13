@@ -48,19 +48,30 @@ function mgen_none.callback(entity,now)
 		return
 	end
 	
-	local speed = entity.object:getvelocity()
+	local oldspeed = entity.object:getvelocity()
+	local newspeed = { x=oldspeed.x, y=oldspeed.y, z=oldspeed.z}
 	local default_y_acceleration = environment.get_default_gravity(pos,
 													entity.environment.media,
 													entity.data.movement.canfly)
 	
-	entity.object:setacceleration({x=0,y=default_y_acceleration,z=0})
+	mobf_physics.setacceleration(entity,{x=0,y=default_y_acceleration,z=0})
 	
-	if default_y_acceleration ~= 0 then
-		entity.object:setvelocity({x=0,y=speed.y,z=0})
-	else
-		entity.object:setvelocity({x=0,y=0,z=0})
+	
+	if not mobf_physics.is_floating(entity) then
+		newspeed.x = 0
+		newspeed.z = 0
 	end
 	
+	if default_y_acceleration == 0 then
+		newspeed.y=0
+	end
+	
+	if oldspeed.x ~= newspeed.x or
+		oldspeed.z ~= newspeed.z or
+		oldspeed.y ~= newspeed.y then
+	
+		entity.object:setvelocity(newspeed)
+	end
 end
 
 -------------------------------------------------------------------------------

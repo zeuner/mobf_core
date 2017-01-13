@@ -298,7 +298,7 @@ function movement_gen.apply_movement_changes(entity,movement_state)
 										
 		-- todo check for harsh direction changes
 		entity.dynamic_data.movement.acceleration = movement_state.accel_to_set
-		entity.object:setacceleration(movement_state.accel_to_set)
+		mobf_physics.setacceleration(entity, movement_state.accel_to_set)
 	end
 end
 
@@ -456,7 +456,8 @@ function movement_gen.fix_current_pos(entity,movement_state)
 		current_state ~= "wrong_surface" and
 		current_state ~= "possible_surface" and
 		current_state ~= "below_limit" and
-		current_state ~= "above_limit" then
+		current_state ~= "above_limit" and 
+		current_state ~= "in_flowing_water" then
 		dbg_mobf.movement_lvl1("MOBF: BUG !!! somehow your mob managed to get"
 									.." where it shouldn't be ("
 									.. current_state .. "), trying to fix")

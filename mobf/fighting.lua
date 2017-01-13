@@ -278,13 +278,13 @@ function fighting.run_away(entity,dir_to_enemy,enemy)
 		local fleevelocity     = mobf_calc_vector_components(dir_rad,
 										entity.data.movement.max_accel*2)
 
-		local current_accel    = entity.object:getacceleration()
+		local current_accel    = mobf_physics.setacceleration(entity)
 		local current_velocity = entity.object:getvelocity()
 
 		mob_state.change_state(entity,new_state)
 
 		entity.object:setvelocity({x=0,y=current_velocity.y,z=0})
-		entity.object:setacceleration({
+		mobf_physics.setacceleration(entity,{
 										x=fleevelocity.x,
 										y=current_accel.y,
 										z=fleevelocity.z}

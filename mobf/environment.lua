@@ -1030,6 +1030,14 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 		end
 	end
 
+	if retval == "in_water" then
+		local nodename = minetest.get_node(pos).name
+		if core.registered_nodes[nodename].liquidtype == "flowing" then
+			retval = "in_flowing_water"
+		end
+	end
+	
+
 	return retval
 end
 

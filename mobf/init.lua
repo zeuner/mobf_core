@@ -96,6 +96,7 @@ dofile (mobf_modpath .. "/inventory.lua")
 dofile (mobf_modpath .. "/path.lua")
 dofile (mobf_modpath .. "/factions.lua")
 dofile (mobf_modpath .. "/step_quota.lua")
+dofile (mobf_modpath .. "/physics.lua")
 
 --include spawning support
 dofile (mobf_modpath .. "/spawning.lua")
@@ -305,6 +306,16 @@ function mobf_init_modules()
 			name = "update_graphics",
 			handler = graphics.update,
 			init = graphics.init_dynamic_data,
+			configcheck = function(entity)
+					return true
+				end
+				})
+				
+	--physics calculations
+	mobf.register_on_step_callback({
+			name = "physics",
+			handler = mobf_physics.update,
+			init = mobf_physics.init_dynamic_data,
 			configcheck = function(entity)
 					return true
 				end

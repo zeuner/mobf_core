@@ -139,10 +139,11 @@ function mgen_flee.callback(entity,now)
 	else
 		entity.dynamic_data.movement.invalid_env_count = 0
 	end
-
+	
+	local current_accel = mobf_physics.getacceleration(entity)
+	
 	if pos_quality.level_quality ~= LQ_OK and
 		entity.data.movement.canfly then
-		local current_accel = entity.object:getacceleration()
 
 		if pos_quality.level_quality == LQ_ABOVE then
 			if current_accel.y >= 0 then
@@ -151,22 +152,20 @@ function mgen_flee.callback(entity,now)
 		end
 
 		if pos_quality.level_quality == LQ_BELOW then
-			local current_accel = entity.object:getacceleration()
 			if current_accel.y <= 0 then
 				current_accel.y = entity.data.movement.max_accel
 			end
 		end
 
-		entity.object:setacceleration(current_accel)
+		mobf_physics.setacceleration(entity,current_accel)
 		return
 	end
 
 	--fixup height
-	local current_accel = entity.object:getacceleration()
 	if entity.data.movement.canfly then
 		if current_accel.y ~= 0 then
 			current_accel.y = 0
-			entity.object:setacceleration(current_accel)
+			mobf_physics.setacceleration(entity,current_accel)
 		end
 	end
 
@@ -403,12 +402,12 @@ function mgen_flee.set_acceleration(entity,accel,speedup,pos)
 
 	if mgen_flee.next_block_ok(entity,pos,accel) then
 		dbg_mobf.flmovement_lvl3("MOBF:   flee setting acceleration to: " .. printpos(accel));
-		entity.object:setacceleration(accel)
+		mobf_physics.setacceleration(entity,accel)
 		return true
 	elseif mgen_flee.next_block_ok(entity,pos,{x=0,y=0,z=0}) then
 		accel = {x=0,y=0,z=0}
 		dbg_mobf.flmovement_lvl3("MOBF:   flee setting acceleration to: " .. printpos(accel));
-		entity.object:setacceleration(accel)
+		mobf_physics.setacceleration(entity,accel)
 		return true
 	else
 		local current_velocity = entity.object:getvelocity()
@@ -417,7 +416,7 @@ function mgen_flee.set_acceleration(entity,accel,speedup,pos)
 		if mgen_flee.next_block_ok(entity,pos,{x=0,y=0,z=0},current_velocity) then
 			accel = {x=0,y=0,z=0}
 			entity.object:setvelocity(current_velocity)
-			entity.object:setacceleration(accel)
+			mobf_physics.setacceleration(entity,accel)
 			return true
 		end
 	end

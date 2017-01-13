@@ -40,7 +40,7 @@ function mobf_ride.attach_player(entity,player)
 
 	entity.dynamic_data.ride.is_attached = true
 	entity.dynamic_data.ride.player = player
-	entity.object:setacceleration({x=0,y=-9.81,z=0})
+	mobf_physics.setacceleration(entity,{x=0,y=-9.81,z=0})
 	entity.object:setvelocity({x=0,y=-9.81,z=0})
 
 	local attacheoffset = {x=0,y=0.5,z=0}
@@ -116,7 +116,7 @@ function mobf_ride.on_step_callback(entity)
 		end
 
 		local dir = entity.dynamic_data.ride.player:get_look_yaw()
-		local current_speed = entity.object:getacceleration()
+		local current_speed = entity.object:getvelocity()
 
 		local speed_to_set = {x=0,y=current_speed.y,z=0}
 		if dir ~= nil then

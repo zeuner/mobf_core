@@ -133,7 +133,7 @@ function mgen_follow.handleteleport(entity,now,targetpos)
 			end
 
 			entity.object:setvelocity({x=0,y=0,z=0})
-			entity.object:setacceleration({x=0,y=0,z=0})
+			mobf_physics.setacceleration(entity,{x=0,y=0,z=0})
 			entity.object:moveto(targetpos)
 			entity.dynamic_data.movement.last_next_to_target = now
 			
@@ -435,7 +435,7 @@ function mgen_follow.callback(entity,now, dstep)
 		entity.dynamic_data.movement.invalid_env_count = 0
 	end
 
-	local current_accel = entity.object:getacceleration()
+	local current_accel = mobf_physics.getacceleration(entity)
 
 	if pos_quality.level_quality ~= LQ_OK and
 		entity.data.movement.canfly then
@@ -448,13 +448,12 @@ function mgen_follow.callback(entity,now, dstep)
 		end
 
 		if pos_quality.level_quality == LQ_BELOW then
-			local current_accel = entity.object:getacceleration()
 			if current_accel.y <= 0 then
 				current_accel.y = entity.data.movement.max_accel
 			end
 		end
 
-		entity.object:setacceleration(current_accel)
+		mobf_physics.setacceleration(entity,current_accel)
 		return
 	end
 
@@ -462,7 +461,7 @@ function mgen_follow.callback(entity,now, dstep)
 	if entity.data.movement.canfly then
 		if current_accel.y ~= 0 then
 			current_accel.y = 0
-			entity.object:setacceleration(current_accel)
+			mobf_physics.setacceleration(entity,current_accel)
 		end
 	end
 
@@ -508,6 +507,8 @@ function mgen_follow.callback(entity,now, dstep)
 
 		mgen_follow.check_target(entity, basepos, targetpos,
 			entity.dynamic_data.movement.max_distance or 1, now, follow_speedup, dstep)
+
+
 
 	else
 		--TODO evaluate if this is an error case
@@ -653,6 +654,13 @@ function mgen_follow.checkspeed(entity)
 
 	local xzspeed =
 		mobf_calc_scalar_speed(current_velocity.x,current_velocity.z)
+		
+	
+	local max_speed = entity.data.movement.max_speed
+	
+	if mobf_physics.is_floating(entity) then
+		max_speed = max_speed * 1.5
+	end
 
 	if (xzspeed > entity.data.movement.max_speed) then
 
@@ -662,11 +670,11 @@ function mgen_follow.checkspeed(entity)
 		--reduce speed to 90% of current speed
 		local new_speed = mobf_calc_vector_components(direction,xzspeed*0.9)
 
-		local current_accel = entity.object:getacceleration()
+		local current_accel = mobf_physics.getacceleration(entity)
 
 		new_speed.y = current_velocity.y
 		entity.object:setvelocity(new_speed)
-		entity.object:setacceleration({x=0,y=current_accel.y,z=0})
+		mobf_physics.setacceleration(entity,{x=0,y=current_accel.y,z=0})
 
 		return true
 	end
@@ -698,12 +706,12 @@ function mgen_follow.set_acceleration(entity,accel,speedup,pos)
 	-- check if accel to set would result in walking to invalid block
 	if mgen_follow.next_block_ok(entity,pos,accel) then
 		dbg_mobf.fmovement_lvl3("MOBF:   setting acceleration to: " .. printpos(accel));
-		entity.object:setacceleration(accel)
+		mobf_physics.setacceleration(entity,accel)
 		return true
 	-- check if not considering y accel would work
 	elseif mgen_follow.next_block_ok(entity,pos,{x=accel.x,y=0,z=accel.z}) then
 		dbg_mobf.fmovement_lvl3("MOBF:   setting acceleration to: " .. printpos(accel));
-		entity.object:setacceleration(accel)
+		mobf_physics.setacceleration(entity,accel)
 		return true
 	--check if not applying any acceleration and ignoring y velocity would work
 	else
@@ -717,7 +725,7 @@ function mgen_follow.set_acceleration(entity,accel,speedup,pos)
 		if mgen_follow.next_block_ok(entity,pos,{x=0,y=accel.y,z=0},current_velocity) then
 			accel = {x=0,y=accel.y,z=0}
 			entity.object:setvelocity(current_velocity)
-			entity.object:setacceleration(accel)
+			mobf_physics.setacceleration(entity,accel)
 			return false
 		end
 	end
