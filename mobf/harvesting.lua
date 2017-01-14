@@ -91,10 +91,11 @@ function harvesting.catch(entity, player, now)
 						return true
 					end
 				end
-				
+
 				-- take from inventory
-				if entity.data.catching.consumed == true then
-					if player:get_inventory():contains_item("main", catchtools[i].name.." 1") then
+				if entity.data.catching.consumed == true and
+					not mobf_rtd.creative_mode then
+					if player:get_inventory():contains_item("main",catchtools[i].name.." 1") then
 						dbg_mobf.harvesting_lvl2("MOBF: removing: "
 							.. catchtools[i].name.." 1")
 						player:get_inventory():remove_item("main",
@@ -112,7 +113,7 @@ function harvesting.catch(entity, player, now)
 						"You failed to catch " .. entity.description .. "!")
 					return true
 				end
-		
+				
 				-- determin what to add in case of successfull catching
 				local catch_result = nil
 				local catch_type = "undefined"
@@ -238,7 +239,8 @@ function harvesting.callback(entity,player,now)
 			player:get_inventory():add_item("main", entity.data.harvest.result.." 1")
 
 			--check if tool is consumed by action
-			if entity.data.harvest.tool_consumed then
+			if entity.data.harvest.tool_consumed and
+				not mobf_rtd.creative_mode then
 				dbg_mobf.harvesting_lvl2("MOBF: removing "
 					..entity.data.harvest.tool.." 1")
 				player:get_inventory():remove_item("main",entity.data.harvest.tool.." 1")

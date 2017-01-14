@@ -1422,8 +1422,6 @@ function fighting.heal(entity,player)
 	
 	local new_health = 0
 	
-	print("healdb value: " .. dump(fighting.healdb[tool].value))
-	
 	if fighting.healdb[tool].value >= 0 then
 		new_health = MIN(entity.object:get_hp() + fighting.healdb[tool].value,
 							 entity.data.generic.base_health)
@@ -1439,7 +1437,9 @@ function fighting.heal(entity,player)
 		mobf_lifebar.set(entity.lifebar,new_health/entity.hp_max)
 	end
 	
-	player:get_inventory():remove_item("main",tool.." 1")
+	if not mobf_rtd.creative_mode then
+		player:get_inventory():remove_item("main",tool.." 1")
+	end
 	
 	if fighting.healdb[tool].replacement ~= nil then
 		player:get_inventory():add_item("main",

@@ -34,6 +34,8 @@ mobf_rtd = {
 	have_adv_spawning		= false,
 	--!do we have factions support
 	factions_available		= false,
+	--!are we in creative mode
+	creative_mode			= core.setting_getbool("creative_mode"),
 	--!registry for movement patterns
 	movement_patterns		= {},
 	--!registry of mobs
