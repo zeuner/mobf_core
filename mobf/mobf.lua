@@ -1022,6 +1022,11 @@ function mobf.register_mob_item(mob)
 							}
 					end
 
+					print("play sound")
+					sound.play(pos, {name="mobf_place_mob",
+										gain = 1,
+										max_hear_distance = 5});
+
 					item:take_item()
 				end
 				return item
