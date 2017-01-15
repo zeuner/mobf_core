@@ -853,6 +853,12 @@ function mobf.rightclick_handler(entity,clicker)
 	if entity.dynamic_data.initialized ~= true then
 		return
 	end
+	
+	local tool = nil
+	if clicker:is_player() then
+		-- what's wielded by player
+		tool = clicker:get_wielded_item()
+	end
 
 	if #entity.on_rightclick_hooks >= 1 then
 
@@ -877,7 +883,7 @@ function mobf.rightclick_handler(entity,clicker)
 
 					if type(entity.on_rightclick_hooks[i].visiblename) == "function" then
 						buttons = buttons ..
-							entity.on_rightclick_hooks[i].visiblename(entity, clicker) .. "]"
+							entity.on_rightclick_hooks[i].visiblename(entity, clicker, tool) .. "]"
 					else
 						buttons = buttons ..
 							entity.on_rightclick_hooks[i].visiblename .. "]"
@@ -899,7 +905,7 @@ function mobf.rightclick_handler(entity,clicker)
 	end
 
 	if #entity.on_rightclick_hooks == 1 then
-		entity.on_rightclick_hooks[1].handler(entity,clicker)
+		entity.on_rightclick_hooks[1].handler(entity,clicker, tool)
 		return true
 	end
 
@@ -937,7 +943,14 @@ function mobf.rightclick_button_handler(player, formname, fields)
 
 				if entity ~= nil and
 					callback ~= nil then
-					callback(entity, player)
+					
+					local tool = nil
+					if player:is_player() then
+						-- what's wielded by player
+						tool = player:get_wielded_item()
+					end
+					
+					callback(entity, player, tool)
 				else
 					dbg_mobf.mobf_core_lvl1("MOBF: unable to do callback: "
 						.. dump(entity) .. " " .. dump(callback))

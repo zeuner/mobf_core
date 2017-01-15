@@ -161,10 +161,18 @@ end
 function fighting.hit(entity,attacker)
 	mobf_assert_backtrace(entity ~= nil)
 	mobf_assert_backtrace(attacker ~= nil)
+	
+	
+	local tool = nil
+	
+	if attacker:is_player() then
+		-- what's wielded by player
+		tool = attacker:get_wielded_item()
+	end
 
 	--execute user defined on_hit_callback
 	if entity.data.generic.on_hit_callback ~= nil and
-			entity.data.generic.on_hit_callback(entity,attacker) == true
+			entity.data.generic.on_hit_callback(entity,attacker, tool) == true
 		then
 		dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " custom on hit handler superseeds generic handling")
 		return
@@ -183,7 +191,6 @@ function fighting.hit(entity,attacker)
 		local playername = attacker:get_player_name()
 		if entity.dynamic_data.spawning.spawner == playername then
 			if entity.dynamic_data.state.current ~= "combat" then
-				local tool = attacker:get_wielded_item()
 				-- rotation is only done if player punches using hand
 				if tool:get_name() == "" then
 					local current_yaw = graphics.getyaw(entity)
@@ -211,9 +218,7 @@ function fighting.hit(entity,attacker)
 		local new_props = {
 			textures = { entity.dynamic_data.combat.old_textures[1] .. "^" ..
 				entity.data.combat.on_hit_overlay.texture }
-		}
-		
-		
+		}	
 		
 		core.after(entity.data.combat.on_hit_overlay.timer,function()
 			local restore_probs = {
@@ -276,19 +281,19 @@ function fighting.run_away(entity,dir_to_enemy,enemy)
 		local new_state = mob_state.get_state_by_name(entity,"walking")
 		local dir_rad     = mobf_calc_yaw(dir_to_enemy.x,dir_to_enemy.z)
 		local fleevelocity     = mobf_calc_vector_components(dir_rad,
-										entity.data.movement.max_accel*2)
+		                             entity.data.movement.max_accel*2)
 
-		local current_accel    = mobf_physics.setacceleration(entity)
+		local current_accel    = mobf_physics.getacceleration(entity)
 		local current_velocity = entity.object:getvelocity()
 
 		mob_state.change_state(entity,new_state)
 
 		entity.object:setvelocity({x=0,y=current_velocity.y,z=0})
 		mobf_physics.setacceleration(entity,{
-										x=fleevelocity.x,
-										y=current_accel.y,
-										z=fleevelocity.z}
-									)
+		                                 x=fleevelocity.x,
+		                                 y=current_accel.y,
+		                                 z=fleevelocity.z}
+		                                 )
 	else
 		mob_state.change_state(entity,flee_state)
 		entity.dynamic_data.current_movement_gen.set_target(entity,enemy)
