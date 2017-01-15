@@ -113,4 +113,8 @@ dbg_mobf = {
 	attention_lvl1			= function () end,
 	attention_lvl2			= function () end,
 	attention_lvl3			= function () end,
+	
+	physics_lvl1			= function () end,
+	physics_lvl2			= function () end,
+	physics_lvl3			= function () end,
 }

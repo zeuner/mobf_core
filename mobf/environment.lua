@@ -1032,11 +1032,16 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 		local nodename = minetest.get_node(pos).name
 		if core.registered_nodes[nodename].liquidtype == "flowing" then
 		
-			local nodename_below = minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name
-		
+			--if water ain't that deep consider it as floating
+			local nodename_below = minetest.get_node({x=pos.x, y=pos.y-2, z=pos.z}).name
 			if core.registered_nodes[nodename_below].liquidtype ~= "flowing" and
 				core.registered_nodes[nodename_below].liquidtype ~= "source" then
-			retval = "floating"
+				retval = "floating"
+			end
+			local nodename_2below = minetest.get_node({x=pos.x, y=pos.y-2, z=pos.z}).name
+			if core.registered_nodes[nodename_2below].liquidtype ~= "flowing" and
+				core.registered_nodes[nodename_2below].liquidtype ~= "source" then
+				retval = "floating"
 			end
 		end
 	end

@@ -690,8 +690,18 @@ function mobf.register_entity(name, cur_graphics, mob)
 				end
 
 				local movestart = mobf_get_time_ms()
+				
+				-- basic movement information
+				local movgen_basepos = self.getbasepos(self)
+				local movgen_current_state = environment.pos_is_ok(movgen_basepos,self)
+				
+				if not mobf_physics.damage_handler(self, now, movgen_basepos, movgen_current_state) then
+					mobf_step_quota.consume(quotatime)
+					return
+				end
+				
 				--movement generator
-				self.dynamic_data.current_movement_gen.callback(self,now, self.current_dtime)
+				self.dynamic_data.current_movement_gen.callback(self, now, self.current_dtime, movgen_basepos, movgen_current_state)
 
 				mobf_warn_long_fct(movestart,"on_step_movement","movement")
 
@@ -1335,7 +1345,7 @@ function mobf.drop_kill_result(entity, killer)
 	
 	for i=1,#result, 1 do
 		local is_added = false
-		if killer:is_player() then
+		if killer and killer:is_player() then
 			if killer:get_inventory():room_for_item("main", result[i]) then
 				killer:get_inventory():add_item("main", result[i])
 				is_added = true
