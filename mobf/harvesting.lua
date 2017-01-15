@@ -234,9 +234,20 @@ function harvesting.callback(entity,player,now)
 		--harvest delay mode
 		if entity.data.harvest.min_delay < 0 or
 			entity.dynamic_data.harvesting.ts_last + entity.data.harvest.min_delay < now then
-
-			--TODO check if player has enough room
-			player:get_inventory():add_item("main", entity.data.harvest.result.." 1")
+			
+			local result = nil 
+			
+			if mobf_dyeing.config_check(entity) then
+				result = mobf_dyeing.get_harvest_result(entity)
+			elseif type(entity.data.harvest.result) == "function" then
+				result = entity.data.harvest.result(entity)
+			else
+				result = entity.data.harvest.result.." 1"
+			end
+			
+			if not player:get_inventory():add_item("main", result) then
+				-- TODO place as item at entity pos
+			end
 
 			--check if tool is consumed by action
 			if entity.data.harvest.tool_consumed and

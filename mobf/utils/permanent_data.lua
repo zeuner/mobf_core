@@ -224,14 +224,15 @@ function mobf_serialize_permanent_entity_data(entity)
 								playerspawned = entity.dynamic_data.spawning.player_spawned,
 								original_spawntime = entity.dynamic_data.spawning.original_spawntime,
 								spawner = entity.dynamic_data.spawning.spawner,
-								version = 3,
+								version = 4,
 								state = state,
 								pathindex = pathindex,
 								pathowner = pathowner,
 								pathname = pathname,
 								custom_persistent = entity.dynamic_data.custom_persistent,
 								factions = factions,
-								textureidx = entity.dynamic_data.textureidx
+								textureidx = entity.dynamic_data.textureidx,
+								dyeing = entity.dynamic_data.dyeing
 							}
 		local serialized = minetest.serialize(toserialize)
 		--mobf_print("DEBUG: serialized -> " .. serialized)

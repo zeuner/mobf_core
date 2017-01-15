@@ -502,6 +502,9 @@ function mobf.activate_handler(self,staticdata)
 
 	--initialize height level
 	environment.fix_base_pos(self, self.collisionbox[2] * -1)
+	
+	--initialize dyeing
+	mobf_dyeing.on_activate(self, preserved_data)
 
 	--custom on activate handler
 	if (self.data.generic.custom_on_activate_handler ~= nil) then

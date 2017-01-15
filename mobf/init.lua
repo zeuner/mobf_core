@@ -97,6 +97,7 @@ dofile (mobf_modpath .. "/path.lua")
 dofile (mobf_modpath .. "/factions.lua")
 dofile (mobf_modpath .. "/step_quota.lua")
 dofile (mobf_modpath .. "/physics.lua")
+dofile (mobf_modpath .. "/dyeing.lua")
 
 --include spawning support
 dofile (mobf_modpath .. "/spawning.lua")
@@ -404,6 +405,13 @@ function mobf_init_modules()
 			configcheck	= function(entity)
 					return true
 				end,
+			})
+			
+	mobf.register_on_rightclick_callback({
+			name = "dyeing",
+			visiblename = mobf_dyeing.dye_caption,
+			handler		= mobf_dyeing.on_rightclick,
+			configcheck	= mobf_dyeing.config_check
 			})
 end
 

@@ -54,7 +54,7 @@ local mob_template = {
 		--! @brief [OPTIONAL] armor groups of mob
 		armor_groups = nil,
 
-		--! @brief [OPTIONAL] custom on_hit(entity,player) callback return true to skip normal fight callback
+		--! @brief [OPTIONAL] custom on_hit(entity,player,tool) callback return true to skip normal fight callback
 		on_hit_callback = nil,
 
 		--! @brief [OPTIONAL] custom on_kill(entity,player) callback return true to skip normal on kill handling
@@ -72,7 +72,7 @@ local mob_template = {
 		--! @brief [OPTIONAL] list of callbacks 
 		on_rightclick_callbacks = {
 			{
-				handler = function(entity, player)  end,
+				handler = function(entity, player, tool)  end,
 				name = "internal name shown in debug info",
 				visiblename = function(entity) end or "some label of rightclick button"
 			}
@@ -123,6 +123,15 @@ local mob_template = {
 
 		--! @brief [MANDATORY] minimum time between two harvests (in case of transform set this to -1)
 		min_delay=-1,
+		
+		--! @brief [OPTIONAL] mob can be dyed with regular dyes
+		dyeable=nil,
+		
+		--! @brief [OPTIONAL] mobs dye is removed on harvesting (always true for transforming mobs)
+		dye_removed=false,
+		
+		--! @brief [OPTIONAL] basename for harvest result e.g. "wool:" for mobs providing dyed wool
+		dye_result_base=nil
 		},
 
 	--! @brief [OPTIONAL] configuration how to catch the mob
