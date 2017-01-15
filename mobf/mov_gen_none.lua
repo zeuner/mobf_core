@@ -33,39 +33,39 @@ mgen_none.name = "none"
 --
 --! @param entity mob to generate movement for
 --! @param now current time
+--! @param pos base position of mob
+--! @param current_state current short environment state
 -------------------------------------------------------------------------------
-function mgen_none.callback(entity,now)
-	mobf_assert_backtrace(entity ~= nil)
-	
-	local pos = entity.getbasepos(entity)
+function mgen_none.callback(entity, now, dtime, pos, current_state)
 
-	local current_state = environment.pos_is_ok(pos,entity)
+	mobf_assert_backtrace(entity ~= nil)
+	mobf_assert_backtrace(pos ~= nil)
+	mobf_assert_backtrace(current_state ~= nil)
 	
-	if current_state == "in_water" or
-		current_state == "in_air" or
-		current_state == "above_water" then
-		spawning.remove(entity, "mgen none envcheck")
-		return
-	end
-	
-	local oldspeed = entity.object:getvelocity()
-	local newspeed = { x=oldspeed.x, y=oldspeed.y, z=oldspeed.z}
 	local default_y_acceleration = environment.get_default_gravity(pos,
 													entity.environment.media,
 													entity.data.movement.canfly)
-	
 	mobf_physics.setacceleration(entity,{x=0,y=default_y_acceleration,z=0})
 	
 	
-	if not mobf_physics.is_floating(entity) then
+	local oldspeed = entity.object:getvelocity()
+	local newspeed = { x=oldspeed.x, y=oldspeed.y, z=oldspeed.z}
+	
+	-- do not reset xz speed for floating or dropping mobs
+	if not mobf_physics.is_floating(entity) or
+		current_state == "drop" or 
+		current_state == "in_air" or 
+		current_state == "above_water" then
 		newspeed.x = 0
 		newspeed.z = 0
 	end
 	
+	-- reset falling speed if mob doesn't honor gravity
 	if default_y_acceleration == 0 then
-		newspeed.y=0
+		newspeed.y = 0
 	end
 	
+	-- only update if necessary
 	if oldspeed.x ~= newspeed.x or
 		oldspeed.z ~= newspeed.z or
 		oldspeed.y ~= newspeed.y then
