@@ -1307,7 +1307,7 @@ function mobf.drop_kill_result(entity, killer)
 		return
 	end
 	
-	print("drop will be: " .. dump(result) .. " original was: " .. dump(entity.data.generic.kill_result))
+	dbg_mobf.mobf_core_lvl2("drop will be: " .. dump(result) .. " original was: " .. dump(entity.data.generic.kill_result))
 	
 	if #result == 0 then
 		return
@@ -1326,4 +1326,48 @@ function mobf.drop_kill_result(entity, killer)
 			minetest.add_item(entity.object:getpos(),result[i])
 		end
 	end
+end
+
+-------------------------------------------------------------------------------
+--- @function [parent=#mobf] call_on_corner_positions(entity, fct)
+--
+--! @brief calls fct on all four corner positions and provides their results
+--! @memberof mobf
+--! @public
+--
+--! @param entity entity to check
+--! @param pos position to assume the entity to be
+--! @param fct function to call
+--! @param data passed to the check fct
+--! @return table of results
+--------------------------------------------------------------------------------
+function mobf.call_on_corner_positions(entity, pos, check_center, fct, data)
+	
+	local retvals = {}
+	local cornerpositions = {}
+	local lastpos = nil -- performance improvement to skip checking same pos multiple times
+
+	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[4] -0.01,y=pos.y,z=pos.z + entity.collisionbox[6] -0.01})
+	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[4] -0.01,y=pos.y,z=pos.z + entity.collisionbox[3] +0.01})
+	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[1] +0.01,y=pos.y,z=pos.z + entity.collisionbox[6] -0.01})
+	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[1] +0.01,y=pos.y,z=pos.z + entity.collisionbox[3] +0.01})
+	
+	if check_center then
+		table.insert(cornerpositions, pos)
+	end
+
+	for i=1,#cornerpositions,1 do
+		if not mobf_pos_is_same(lastpos,cornerpositions[i]) then
+			local continue, rv2 = fct(entity, cornerpositions[i], data)
+			table.insert(retvals, { pos=cornerpositions[i], result=rv2 } )
+			
+			if not continue then
+				break
+			end
+		end
+		
+		lastpos = cornerpositions[i]
+	end
+	
+	return retvals
 end

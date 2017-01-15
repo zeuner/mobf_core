@@ -700,123 +700,107 @@ function environment.pos_quality(pos,entity)
 					end
 				}
 
-
-
-	local cornerpositions = {}
-	local lastpos = nil -- performance improvement to skip checking same pos multiple times
-
-	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[4] -0.01,y=pos.y,z=pos.z + entity.collisionbox[6] -0.01})
-	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[4] -0.01,y=pos.y,z=pos.z + entity.collisionbox[3] +0.01})
-	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[1] +0.01,y=pos.y,z=pos.z + entity.collisionbox[6] -0.01})
-	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[1] +0.01,y=pos.y,z=pos.z + entity.collisionbox[3] +0.01})
-
-	local min_ground_distance,max_ground_distance = environment.get_min_max_ground_dist(entity)
-
-	--check if mob at pos will be in correct environment
-	for i=1,#cornerpositions,1 do
-		if not mobf_pos_is_same(lastpos,cornerpositions[i]) then
+	local checkfct = 
+		function(entity, pos, data)
 			local med_quality,node_to_check =
-				environment.evaluate_pos_media(cornerpositions[i],
-												entity.environment.media)
+				environment.evaluate_pos_media(pos, entity.environment.media)
+	
+	
 			--if current result is worse than old one
-			if med_quality < retval.media_quality then
+			if med_quality < data.media_quality then
 				if med_quality == 0 then
-					retval.valid = false
+					data.valid = false
 				end
 
 				if node_to_check.name == "default:water_source" or
 					node_to_check.name == "default:water_flowing" then
-					retval.media_quality = 20
+					data.media_quality = 20
 				end
 
 				if node_to_check.name == "air" then
-					retval.media_quality = 10
-					break
+					data.media_quality = 10
 				end
 
-				if med_quality < retval.media_quality then
-					retval.media_quality = 5
+				if med_quality < data.media_quality then
+					data.media_quality = 5
+					return false, nil
 				end
 			end
+			
+			return true, nil
 		end
-		lastpos = cornerpositions[i]
-	end
+		
+	mobf.call_on_corner_positions(entity, pos, false, checkfct, retval)
 
 	--check height level for flying mobs
 	if entity.data.movement.canfly == true then
-		lastpos = nil
-		for i=1,#cornerpositions,1 do
-			if not mobf_pos_is_same(lastpos,cornerpositions[i]) then
-				local miny,maxy = environment.get_absolute_min_max_pos(entity.environment,cornerpositions[i])
+	
+		local checkfct = 
+			function(entity, pos, data)
+			
+				local miny,maxy = environment.get_absolute_min_max_pos(entity.environment,pos)
 
 				dbg_mobf.environment_lvl2("MOBF: \tflying mob detected, min: "
 					.. miny .. " max: " .. maxy .. " current: " .. pos.y)
 
-
-				if cornerpositions[i].y < miny then
-					retval.level_quality = 30
+				if pos.y < miny then
+					data.level_quality = 30
 				end
 
-				if cornerpositions[i].y > maxy then
-					retval.level_quality = 60
+				if pos.y > maxy then
+					data.level_quality = 60
 				end
 
-				if retval.level_quality < 100 then
-					break
+				if data.level_quality < 100 then
+					return false, nil
 				end
+				
+				return true, nil 
 			end
-
-		lastpos = cornerpositions[i]
-		end
+	
+		mobf.call_on_corner_positions(entity, pos, false, checkfct, retval)
 	else
-
-		--check geometry and surface quality
-		lastpos = nil
-		local have_contact    = false
-		local have_no_contact = 0
-		local above_water = 0
-
-		table.insert(cornerpositions,pos)
-
-		for i=1,#cornerpositions,1 do
-			if not mobf_pos_is_same(lastpos,cornerpositions[i]) then
-
-				local ground_distance = mobf_ground_distance(cornerpositions[i], entity.environment.media)
-
-
+		local checkfct = 
+			function(entity, pos, data)
+			
+				local ground_distance =
+					mobf_ground_distance(pos, entity.environment.media)
+		
 				--first check if on surface or not
-				if ground_distance <= max_ground_distance then
+				if ground_distance <= data.max_ground_distance then
 					local is_center = false
-					if mobf_pos_is_same(pos,cornerpositions[i]) then
-						retval.center_geometry_quality = 100
+					
+					if mobf_pos_is_same(data.centerpos,pos) then
+						data.retval.center_geometry_quality = 100
 						is_center = true
 					end
-					have_contact = true
+					
+					data.have_contact = true
 
 					local current_surface,belowname =
-						environment.checksurface(cornerpositions[i],entity.environment.surfaces)
+						environment.checksurface(pos,entity.environment.surfaces)
 
 					if current_surface == "ok" then
-						if retval.surface_quality_max < 100 then
-							retval.surface_quality_max = 100
+						if data.retval.surface_quality_max < 100 then
+							data.retval.surface_quality_max = 100
 						end
 
 						if is_center then
-							retval.surface_quality_center = 100
+							data.retval.surface_quality_center = 100
 						end
 					end
 
 					if current_surface == "possible_surface" then
-						if retval.surface_quality_max < 60 then
-							retval.surface_quality_max = 60
+						if data.retval.surface_quality_max < 60 then
+							data.retval.surface_quality_max = 60
 						end
 
-						if retval.surface_quality_min > 60 then
-							retval.surface_quality_min = 60
+						if data.retval.surface_quality_min > 60 then
+							data.retval.surface_quality_min = 60
 						end
 
 						if is_center then
-							retval.surface_quality_center = 60
+							data.retval.surface_quality_center = 60
 						end
 					end
 
@@ -824,65 +808,79 @@ function environment.pos_quality(pos,entity)
 						if	belowname == "default:water_source" or
 							belowname == "default:water_flowing" then
 							
-							above_water = above_water +1
+							data.above_water = above_water +1
 							
-							if retval.surface_quality_max < 10 then
-								retval.surface_quality_max = 10
+							if data.retval.surface_quality_max < 10 then
+								data.retval.surface_quality_max = 10
 							end
 
-							if retval.surface_quality_min > 10 then
-								retval.surface_quality_min = 10
+							if data.retval.surface_quality_min > 10 then
+								data.retval.surface_quality_min = 10
 							end
 
 							if is_center then
-								retval.surface_quality_center = 10
+								data.retval.surface_quality_center = 10
 							end
 						else
-							if retval.surface_quality_max < 30 then
-								retval.surface_quality_max = 30
+							if data.retval.surface_quality_max < 30 then
+								data.retval.surface_quality_max = 30
 							end
 
-							if retval.surface_quality_min > 30 then
-								retval.surface_quality_min = 30
+							if data.retval.surface_quality_min > 30 then
+								data.retval.surface_quality_min = 30
 							end
 
 							if is_center then
-								retval.surface_quality_center = 30
+								data.retval.surface_quality_center = 30
 							end
 						end
 					end
 				else
-					if mobf_pos_is_same(pos,cornerpositions[i]) then
-						retval.center_geometry_quality = 30
+					if mobf_pos_is_same(data.centerpos,pos) then
+						data.retval.center_geometry_quality = 30
 					end
 					have_no_contact = have_no_contact + 1
 				end
+				
+				return true, nil
 			end
 
-			lastpos = cornerpositions[i]
-		end
+		--check geometry and surface quality
+		local data = 
+			{
+			have_contact    = false,
+			have_no_contact = 0,
+			centerpos       = pos,
+			retval          = retval,
+			above_water     = 0
+			}
+			
+		data.min_ground_distance, data.max_ground_distance =
+			environment.get_min_max_ground_dist(entity)
+		
+		mobf.call_on_corner_positions(entity, pos, true, checkfct, data)
 
-		if have_contact and have_no_contact == 0 then
+		if data.have_contact and not data.have_no_contact == 0 then
 			retval.geometry_quality = 100
-		elseif have_contact and have_no_contact > 0 then
-			retval.geometry_quality = 65 - (have_no_contact * 5)
-		elseif not have_contact then
+		elseif data.have_contact and data.have_no_contact > 0 then
+			retval.geometry_quality = 65 - (data.have_no_contact * 5)
+		elseif not data.have_contact then
 			retval.geometry_quality = 30
 		end
 		
 		-- more detailed above water information
-		if above_water > 0 and retval.surface_quality_min == 10 then
-			if above_water == 1 then
+		if data.above_water > 0 and retval.surface_quality_min == 10 then
+			if data.above_water == 1 then
 				retval.surface_quality_min = 20
-			elseif above_water == 2 then
+			elseif data.above_water == 2 then
 				retval.surface_quality_min = 15
 			end
 		end
 		
-		if above_water > 0 and retval.surface_quality_max == 10 then
-			if above_water == 1 then
+		if data.above_water > 0 and retval.surface_quality_max == 10 then
+			if data.above_water == 1 then
 				retval.surface_quality_max = 20
-			elseif above_water == 2 then
+			elseif data.above_water == 2 then
 				retval.surface_quality_max = 15
 			end
 		end
@@ -952,8 +950,8 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 					" not within environment")
 
 				if mobf_pos_is_same(pos,cornerpositions[i]) then
-					if node_to_check.name == "default:water_source" or
-						node_to_check.name == "default:water_flowing" then
+					if core.registered_nodes[node_to_check.name].liquidtype == "source" or
+						core.registered_nodes[node_to_check.name].liquidtype == "flowing" then
 						retval = "in_water"
 						break
 					end
@@ -1033,7 +1031,13 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 	if retval == "in_water" then
 		local nodename = minetest.get_node(pos).name
 		if core.registered_nodes[nodename].liquidtype == "flowing" then
-			retval = "in_flowing_water"
+		
+			local nodename_below = minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name
+		
+			if core.registered_nodes[nodename_below].liquidtype ~= "flowing" and
+				core.registered_nodes[nodename_below].liquidtype ~= "source" then
+			retval = "floating"
+			end
 		end
 	end
 	
