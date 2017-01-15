@@ -345,16 +345,20 @@ function mobf.activate_handler(self,staticdata)
 
 	--check if position environment os ok
 	if environment.is_media_element(current_node.name,self.environment.media) == false then
-		minetest.log(LOGLEVEL_WARNING,"MOBF: trying to activate mob "
-			.. self.data.name .. " at invalid position")
-		minetest.log(LOGLEVEL_WARNING,"	Activation at: " .. printpos(pos) .. " "
-			.. current_node.name .. " --> removing")
-		-----------------------------
-		--TODO try to move 1 block up
-		-----------------------------
-		spawning.remove_uninitialized(self,staticdata)
-		mobf_step_quota.consume(starttime)
-		return
+		local pos_above = { x=pos.x, y=pos.y+1, z=pos.z}
+		local node_above = minetest.get_node(pos_above)
+		if environment.is_media_element(node_above.name,self.environment.media) then
+			self.object:setpos(pos_above)
+		else
+			minetest.log(LOGLEVEL_WARNING,"MOBF: trying to activate mob "
+				.. self.data.name .. " at invalid position")
+			minetest.log(LOGLEVEL_WARNING,"	Activation at: " .. printpos(pos) .. " "
+				.. current_node.name .. " --> removing")
+				
+			spawning.remove_uninitialized(self,staticdata)
+			mobf_step_quota.consume(starttime)
+			return
+		end
 	end
 
 	--reset replaced marker
