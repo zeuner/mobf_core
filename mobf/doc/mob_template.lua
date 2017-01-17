@@ -84,10 +84,10 @@ local mob_template = {
 		--! @brief [MANDATORY] is this a flying mob
 		canfly=false,
 
-		--! @brief [MANDATORY] minumum acceleration of mob
+		--! @brief [MOV_GEN_DEPENDENT | MANDATORY] minumum acceleration of mob
 		min_accel=0,
 
-		--! @brief [MANDATORY] maximum acceleration of mob
+		--! @brief [MOV_GEN_DEPENDENT | MANDATORY] maximum acceleration of mob
 		max_accel=0,
 
 		--! @brief [MANDATORY] maximum absolute speed of mob
@@ -112,10 +112,10 @@ local mob_template = {
 		--! @brief [OPTIONAL] tool required for harvesting
 		tool=nil,
 
-		--! @brief [OPTIONAL] is tool consuled by harvesting
+		--! @brief [OPTIONAL] is tool consumed by harvesting
 		tool_consumed=false,
 
-		--! @brief [MANDATORY] result of harvest
+		--! @brief [MANDATORY] result of harvest or function returning itemstring
 		result="",
 
 		--! @brief [OPTIONAL] mob transforms to this mob on harvest
