@@ -105,7 +105,7 @@ function mobf_physics.update(self, dtime)
 
 	local pos = self.getbasepos(self)
 	
-	-- TODO calc liquid acceleration
+	-- calc liquid acceleration
 	local nodename = minetest.get_node(pos).name
 	
 	if core.registered_nodes[nodename].liquidtype == "flowing" then
@@ -142,6 +142,17 @@ function mobf_physics.update(self, dtime)
 	
 	-- TODO calc resistance
 
+
+	-- apply gravity
+	local gravity = environment.get_default_gravity(pos,
+	                    self.environment.media,
+	                    self.data.movement.canfly)
+	local mob_acceleration = self.object:getacceleration()
+	
+	if mob_acceleration.y ~= gravity then
+		mob_acceleration.y = gravity
+		self.object:setacceleration(mob_acceleration)
+	end
 end
 
 -------------------------------------------------------------------------------
