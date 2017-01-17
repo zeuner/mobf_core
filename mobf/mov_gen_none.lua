@@ -26,7 +26,7 @@ mgen_none = {}
 mgen_none.name = "none"
 
 -------------------------------------------------------------------------------
--- name: callback(entity,now)
+-- name: callback(entity,now, pos, current_state)
 --
 --! @brief main callback to do nothing
 --! @memberof mgen_none
