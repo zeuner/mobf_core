@@ -49,6 +49,10 @@ dbg_mobf = {
 	pmovement_lvl1			= function () end,
 	pmovement_lvl2			= function () end,
 	pmovement_lvl3			= function () end,
+	
+	mgen_probv2_lvl1		= print,
+	mgen_probv2_lvl2		= print,
+	mgen_probv2_lvl3		= print,
 
 	fmovement_lvl1			= function () end,
 	fmovement_lvl2			= function () end,

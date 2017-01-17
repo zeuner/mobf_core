@@ -104,6 +104,7 @@ dofile (mobf_modpath .. "/spawning.lua")
 
 --include movement generators
 dofile (mobf_modpath .. "/mgen_probab/main_probab.lua")
+dofile (mobf_modpath .. "/mgen_probabv2/mgen_probab_v2.lua")
 dofile (mobf_modpath .. "/mgen_follow/main_follow.lua")
 dofile (mobf_modpath .. "/mgen_rasterized/mgen_raster.lua")
 dofile (mobf_modpath .. "/mgen_jordan4ibanez/mgen_jordan4ibanez.lua")
