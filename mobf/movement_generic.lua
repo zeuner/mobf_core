@@ -97,7 +97,7 @@ end
 
 
 -------------------------------------------------------------------------------
--- @function [parent=#movement_generic] calc_new_pos(pos,acceleration,prediction_time)
+-- @function [parent=#movement_generic] calc_new_pos(pos,acceleration,prediction_time, current_velocity)
 --
 --! @brief calc the position a mob would be after a specified time
 --         this doesn't handle velocity changes due to colisions
