@@ -84,7 +84,7 @@ function movement_gen.initialize()
 end
 
 -------------------------------------------------------------------------------
--- name: callback(entity)
+-- name: callback(entity, now, dtime, basepos, current_state)
 --
 --! @brief main movement generation function
 --! @memberof movement_gen
@@ -92,8 +92,10 @@ end
 --
 --! @param entity mob to generate movement for
 -------------------------------------------------------------------------------
-function movement_gen.callback(entity)
+function movement_gen.callback(entity, now, dtime, basepos, current_state)
 	mobf_assert_backtrace(entity ~= nil)
+	mobf_assert_backtrace(basepos ~= nil)
+	mobf_assert_backtrace(current_state ~= nil)
 
 	if entity.dynamic_data == nil or
 		entity.dynamic_data.movement == nil then
@@ -105,12 +107,12 @@ function movement_gen.callback(entity)
 
 	--initialize status datastructure
 	local movement_state = {
-		basepos         = entity.getbasepos(entity),
+		basepos         = basepos,
 		default_y_accel = nil,
 		centerpos       = entity.object:getpos(),
 		current_acceleration    = nil,
 		current_velocity        = entity.object:getvelocity(),
-		now             = nil,
+		now             = now,
 
 		override_height_change_chance = 0,
 		accel_to_set    = nil,
@@ -133,12 +135,14 @@ function movement_gen.callback(entity)
 								entity.environment.media,
 								entity.data.movement.canfly)
 	mobf_assert_backtrace(movement_state.default_y_accel ~= nil)
-	movement_state.now			   = mobf_get_current_time()
+	movement_state.accel_to_set = { x=0,
+	                                y=movement_state.default_y_accel,
+	                                z=0 }
 
 
 	--check current position
 	--movement state is modified by this function
-	local retval = movement_gen.fix_current_pos(entity, movement_state)
+	local retval = movement_gen.fix_current_pos(entity, movement_state, current_state)
 
 	--mob has been removed due to unfixable problems
 	if retval.abort_processing then
@@ -417,7 +421,7 @@ function movement_gen.fix_to_slow(entity,movement_state)
 end
 
 -------------------------------------------------------------------------------
--- name: fix_current_pos(entity,movement_state)
+-- name: fix_current_pos(entity, movement_state, current_state)
 --
 --! @brief check current position for validity and try to fix
 --! @memberof movement_gen
@@ -425,27 +429,29 @@ end
 --
 --! @param entity to fix position
 --! @param movement_state movement state of mob
+--! @param current_state state of mob
 --! @return { speed_to_set = {x,y,z},
 --!           speed_changed = true/false,
 --!           force_speed_change = true/false }
 -------------------------------------------------------------------------------
-function movement_gen.fix_current_pos(entity,movement_state)
+function movement_gen.fix_current_pos(entity,movement_state, current_state)
+	mobf_assert_backtrace(entity ~= nil)
+	mobf_assert_backtrace(movement_state ~= nil)
+	mobf_assert_backtrace(current_state ~= nil)
 
 	--check if current pos is ok
-	local current_state = environment.pos_is_ok(movement_state.basepos,entity)
 	local handled = false
 
 	dbg_mobf.pmovement_lvl3("MOBF: current state "..
 							entity.data.name .. ": " .. current_state)
 
-	movement_state.accel_to_set = { x=0,
-									y=movement_state.default_y_accel,
-									z=0 }
-
 	local abort_processing = false
 
 	if current_state == "ok" or
-		current_state == "possible_surface" then
+		current_state == "possible_surface"  or
+		-- to be honest in frlowing water ain't really ok but we don't wanna
+		-- reset the position in this case as water may drag the mob somewhere
+		current_state ~= "floating" then
 		entity.dynamic_data.movement.last_pos_in_env = movement_state.centerpos
 		handled = true
 	end
