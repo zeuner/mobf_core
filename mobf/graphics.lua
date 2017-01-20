@@ -93,22 +93,19 @@ function graphics.update_animation(entity,now,dtime)
 
 			local current_velocity = entity.object:getvelocity()
 			local scalar_velocity = mobf_calc_scalar_speed(current_velocity.x,current_velocity.z)
-
+			
+			local speeddiff = -9999
 			if entity.dynamic_data.graphics.last_scalar_speed ~= nil then
 				local speeddiff =
 					DELTA(scalar_velocity,
 							entity.dynamic_data.graphics.last_scalar_speed)
+			end
+			if speeddiff > 0.05 then
+				local current_fps = scalar_velocity/animdata.basevelocity * 15
+				entity.object:set_animation_frame_speed(current_fps)
 
-				if speeddiff > 0.05 then
-					local current_fps = scalar_velocity/animdata.basevelocity * 15
-
-					entity.object:set_animation_speed(current_fps)
-
-					entity.dynamic_data.graphics.last_scalar_speed = scalar_velocity
-					entity.dynamic_data.graphics.last_fps = current_fps
-				end
-			else
 				entity.dynamic_data.graphics.last_scalar_speed = scalar_velocity
+				entity.dynamic_data.graphics.last_fps = current_fps
 			end
 		end
 	end
