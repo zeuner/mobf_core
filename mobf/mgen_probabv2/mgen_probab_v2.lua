@@ -252,6 +252,13 @@ function mgen_probab_v2.test_walkable(entity, movement_state, velocity, travelti
 	local prediction_time = 0
 	local last_good_predicted_pos = nil
 	local last_good_predicted_time = 0
+	
+	local stepsize = 0.3
+	
+	while (mobf_calc_scalar_speed(velocity.x, velocity.z) * stepsize) > 0.1 do
+		stepsize = stepsize/2
+	end
+	
 	while prediction_time < traveltime do
 		local predicted_pos = movement_generic.calc_new_pos(
 		                          movement_state.basepos,
@@ -270,13 +277,15 @@ function mgen_probab_v2.test_walkable(entity, movement_state, velocity, travelti
 		end
 	
 		local quality_check_result = 
-			environment.evaluate_state(predicted_pos_quality, LT_EDGE_POS)
+			environment.evaluate_state(predicted_pos_quality, LT_EDGE_POS_GOOD_CENTER)
 	
 		local compared_to_current = environment.compare_state(predicted_pos_quality, movement_state.basepos_quality)
 		
 		--dbg_mobf.mgen_probv2_lvl1("MOBF:     mgen_probabv2 check predicted: " ..
 		--                          predicted_pos_quality:shortstring() .. 
+		--                          " is_good: " .. dump(good_quality_check_result) ..
 		--                          " is_ok: " .. dump(quality_check_result) ..
+		--                          " time: " .. prediction_time ..
 		--                          " compared_to_current: " .. compared_to_current)
 	
 		if not quality_check_result and
@@ -286,7 +295,7 @@ function mgen_probab_v2.test_walkable(entity, movement_state, velocity, travelti
 			return false, last_good_predicted_time, last_good_predicted_pos
 		end
 		
-		prediction_time = prediction_time + 0.2
+		prediction_time = prediction_time + stepsize
 	end
 	return true, traveltime
 end
@@ -459,7 +468,7 @@ end
 --! @param pos base position of mob
 --! @param current_state current short environment state
 -------------------------------------------------------------------------------
-function mgen_probab_v2.callback(entity,now, basepos, current_state)
+function mgen_probab_v2.callback(entity,now, dtime, basepos, current_state)
 
 	local movement_state = {}
 	movement_state.short_state = current_state
@@ -472,10 +481,10 @@ function mgen_probab_v2.callback(entity,now, basepos, current_state)
 	-- TODO check current mob position
 
 	if entity.dynamic_data.mgen_probab_v2.moving then
-		dbg_mobf.mgen_probv2_lvl1("MOBF: mgen_probabv2 " .. entity.data.name .. " moving")
+		--dbg_mobf.mgen_probv2_lvl1("MOBF: mgen_probabv2 " .. entity.data.name .. " moving")
 		mgen_probab_v2.cbf_moving(entity,now, movement_state)
 	else
-		dbg_mobf.mgen_probv2_lvl1("MOBF: mgen_probabv2 " .. entity.data.name .. " not moving")
+		--dbg_mobf.mgen_probv2_lvl1("MOBF: mgen_probabv2 " .. entity.data.name .. " not moving")
 		mgen_probab_v2.cbf_standing(entity,now, movement_state)
 	end
 end
