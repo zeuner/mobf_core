@@ -455,35 +455,35 @@ end
 --!
 --! @return -1, 0, 1
 -------------------------------------------------------------------------------
-function environment.compare_state(state1,state2)
-	environment.is_state(state1)
-	environment.is_state(state2)
+function environment.compare_state(left,right)
+	environment.is_state(left)
+	environment.is_state(right)
 
 	local right_better = false
 	local left_better = false
 
-	if state1.valid == false and state2.valid == true then
+	if left.valid == false and right.valid == true then
 		return 1
 	end
 
-	if state1.valid == true and state2.valid == false then
+	if left.valid == true and right.valid == false then
 		return -1
 	end
 
-	if	state1.media_quality < state2.media_quality or
-		state1.geometry_quality < state2.geometry_quality or
-		state1.surface_quality_min < state2.surface_quality_min or
-		state1.surface_quality_max < state2.surface_quality_max or
-		state1.level_quality < state2.level_quality
+	if	left.media_quality < right.media_quality or
+		left.geometry_quality < right.geometry_quality or
+		left.surface_quality_min < right.surface_quality_min or
+		left.surface_quality_max < right.surface_quality_max or
+		left.level_quality < right.level_quality
 		then
 		right_better = true
 	end
 
-	if	state1.media_quality > state2.media_quality or
-		state1.geometry_quality > state2.geometry_quality or
-		state1.surface_quality_min > state2.surface_quality_min or
-		state1.surface_quality_max > state2.surface_quality_max or
-		state1.level_quality > state2.level_quality
+	if	left.media_quality > right.media_quality or
+		left.geometry_quality > right.geometry_quality or
+		left.surface_quality_min > right.surface_quality_min or
+		left.surface_quality_max > right.surface_quality_max or
+		left.level_quality > right.level_quality
 		then
 		left_better = true
 	end
@@ -808,7 +808,7 @@ function environment.pos_quality(pos,entity)
 						if	belowname == "default:water_source" or
 							belowname == "default:water_flowing" then
 							
-							data.above_water = above_water +1
+							data.above_water = data.above_water + 1
 							
 							if data.retval.surface_quality_max < 10 then
 								data.retval.surface_quality_max = 10
@@ -839,7 +839,7 @@ function environment.pos_quality(pos,entity)
 					if mobf_pos_is_same(data.centerpos,pos) then
 						data.retval.center_geometry_quality = 30
 					end
-					have_no_contact = have_no_contact + 1
+					data.have_no_contact = data.have_no_contact + 1
 				end
 				
 				return true, nil
@@ -860,7 +860,7 @@ function environment.pos_quality(pos,entity)
 		
 		mobf.call_on_corner_positions(entity, pos, true, checkfct, data)
 
-		if data.have_contact and not data.have_no_contact == 0 then
+		if data.have_contact and data.have_no_contact == 0 then
 			retval.geometry_quality = 100
 		elseif data.have_contact and data.have_no_contact > 0 then
 			retval.geometry_quality = 65 - (data.have_no_contact * 5)
