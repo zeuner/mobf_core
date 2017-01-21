@@ -129,6 +129,10 @@ end
 -------------------------------------------------------------------------------
 function mobf_lifebar.set(lifebar,value)
 	if lifebar ~= nil then
+		if value < 0 or value > 100 then
+			dbg_mobf.lifebar_lvl3("MOBF: invalid modifier vaule=" .. value)
+			return
+		end
 		local modifiername = mobf_lifebar.get_imagename(value)
 		dbg_mobf.lifebar_lvl2("MOBF: got modifier " .. modifiername .. " for value " .. value)
 		lifebar:settexturemod(modifiername)
