@@ -22,103 +22,66 @@
 --lvl2 medium output
 --lvl3 less output
 
+-- usable levels
+--LOGLEVEL_INFO
+--LOGLEVEL_NOTICE
+--LOGLEVEL_WARNING
+--LOGLEVEL_ERROR
+--LOGLEVEL_CRITICAL
+
+
+local trace_levels = {
+	{ "generic",                  nil,           nil,                nil },
+	{ "graphics",                 nil,           nil,                nil },
+	{ "spawning",                 nil,           nil,                nil },
+	{ "permanent_store",          nil,           nil,                nil },
+	{ "movement",                 nil,           nil,                nil },
+	{ "pmovement",                nil,           nil,                nil },
+	{ "mgen_probv2",              nil,           nil,                nil },
+	{ "fmovement",                nil,           nil,                nil },
+	{ "flmovement",               nil,           nil,                nil },
+	{ "path_mov",                 nil,           nil,                nil },
+	{ "fighting",                 nil,           nil,                nil },
+	{ "environment",              nil,           nil,                nil },
+	{ "harvesting",               nil,           nil,                nil },
+	{ "sound",                    nil,           nil,                nil },
+	{ "random_drop",              nil,           nil,                nil },
+	{ "mob_state",                nil,           nil,                nil },
+	{ "mobf_core",                nil,           nil,                nil },
+	{ "mobf_core_helper",         nil,           nil,                nil },
+	{ "trader_inv",               nil,           nil,                nil },
+	{ "ride",                     nil,           nil,                nil },
+	{ "path",                     nil,           nil,                nil },
+	{ "lifebar",                  nil,           nil,                nil },
+	{ "attention",                nil,           nil,                nil },
+	{ "physics",                  nil,           nil,                nil },
+	
+}
+
+
 --! @brief configuration of trace level to use for various components
 --! @ingroup debug_trace
-dbg_mobf = {
+dbg_mobf = {}
 
-	generic_lvl1			= function () end,
-	generic_lvl2			= function () end,
-	generic_lvl3			= function () end,
 
-	graphics_lvl1			= function () end,
-	graphics_lvl2			= function () end,
-	graphics_lvl3			= function () end,
-
-	spawning_lvl1			= function () end,
-	spawning_lvl2			= function () end,
-	spawning_lvl3			= function () end,
-
-	permanent_store_lvl1	= function () end,
-	permanent_store_lvl2	= function () end,
-	permanent_store_lvl3	= function () end,
-
-	movement_lvl1			= function () end,
-	movement_lvl2			= function () end,
-	movement_lvl3			= function () end,
-
-	pmovement_lvl1			= function () end,
-	pmovement_lvl2			= function () end,
-	pmovement_lvl3			= function () end,
+--! initialize trace functions
+for i, v in ipairs(trace_levels) do
 	
-	mgen_probv2_lvl1		= print,
-	mgen_probv2_lvl2		= print,
-	mgen_probv2_lvl3		= print,
-
-	fmovement_lvl1			= function () end,
-	fmovement_lvl2			= function () end,
-	fmovement_lvl3			= function () end,
-
-	flmovement_lvl1			= function () end,
-	flmovement_lvl2			= function () end,
-	flmovement_lvl3			= function () end,
-
-	path_mov_lvl1			= function () end,
-	path_mov_lvl2			= function () end,
-	path_mov_lvl3			= function () end,
-
-	fighting_lvl1			= function () end,
-	fighting_lvl2			= function () end,
-	fighting_lvl3			= function () end,
-
-	environment_lvl1		= function () end,
-	environment_lvl2		= function () end,
-	environment_lvl3		= function () end,
-
-	harvesting_lvl1			= function () end,
-	harvesting_lvl2			= function () end,
-	harvesting_lvl3			= function () end,
-
-	sound_lvl1				= function () end,
-	sound_lvl2				= function () end,
-	sound_lvl3				= function () end,
-
-	random_drop_lvl1		= function () end,
-	random_drop_lvl2		= function () end,
-	random_drop_lvl3		= function () end,
-
-	mob_state_lvl1			= function () end,
-	mob_state_lvl2			= function () end,
-	mob_state_lvl3			= function () end,
-
-	mobf_core_lvl1			= function () end,
-	mobf_core_lvl2			= function () end,
-	mobf_core_lvl3			= function () end,
-
-	mobf_core_helper_lvl1	= function () end,
-	mobf_core_helper_lvl2	= function () end,
-	mobf_core_helper_lvl3	= function () end,
-
-	trader_inv_lvl1			= function () end,
-	trader_inv_lvl2			= function () end,
-	trader_inv_lvl3			= function () end,
-
-	ride_lvl1				= function () end,
-	ride_lvl2				= function () end,
-	ride_lvl3				= function () end,
-
-	path_lvl1				= function () end,
-	path_lvl2				= function () end,
-	path_lvl3				= function () end,
-
-	lifebar_lvl1			= function () end,
-	lifebar_lvl2			= function () end,
-	lifebar_lvl3			= function () end,
-
-	attention_lvl1			= function () end,
-	attention_lvl2			= function () end,
-	attention_lvl3			= function () end,
+	if v[2] ~= nil then
+		dbg_mobf[v[1] .. "_lvl1"] = function(msg) core.log(v[2], msg) end
+	else
+		dbg_mobf[v[1] .. "_lvl1"] = function(msg) end
+	end
 	
-	physics_lvl1			= function () end,
-	physics_lvl2			= function () end,
-	physics_lvl3			= function () end,
-}
+	if v[3] ~= nil then
+		dbg_mobf[v[1] .. "_lvl2"] = function(msg) core.log(v[3], msg) end
+	else
+		dbg_mobf[v[1] .. "_lvl2"] = function(msg) end
+	end
+	
+	if v[4] ~= nil then
+		dbg_mobf[v[1] .. "_lvl3"] = function(msg) core.log(v[4], msg) end
+	else
+		dbg_mobf[v[1] .. "_lvl3"] = function(msg) end
+	end
+end
