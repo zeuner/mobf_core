@@ -733,24 +733,30 @@ function mobf.register_entity(name, cur_graphics, mob)
 				end,
 
 		--player <-> mob interaction
-			on_punch = function(self, hitter, time_from_last_punch, tool_capabilities, dir)
+			on_punch = function(self, hitter, time_from_last_punch, tool_capabilities, dir, damage)
 				local starttime = mobf_get_time_ms()
 				local now = mobf_get_current_time()
 
 				if self.dynamic_data.initialized ~= true then
-					return
+					return false
+				end
+				
+				if damage == nil then
+					damage = 0
 				end
 
 				for i = 1, #self.on_punch_hooks, 1 do
 					if self.on_punch_hooks[i](self,hitter,now,
-							time_from_last_punch, tool_capabilities, dir) then
+							time_from_last_punch, tool_capabilities, dir, damage) then
 						mobf_warn_long_fct(starttime,"onpunch_total","onpunch_total")
-						return
+						print("returning true on onpunch")
+						return true
 					end
 					mobf_warn_long_fct(starttime,"callback nr " .. i,
 						"callback_op_".. self.data.name .. "_" .. i)
 				end
 				mobf_warn_long_fct(starttime,"onpunch_total","onpunch_total")
+				return false
 				end,
 
 		--rightclick handler

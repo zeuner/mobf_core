@@ -117,14 +117,15 @@ end
 --! @param attacker player/object hitting the mob
 --! @param kill_reason reason to log for killing
 -------------------------------------------------------------------------------
-function fighting.dodamage(entity,attacker, kill_reason)
+function fighting.dodamage(entity,attacker, kill_reason, damage)
 	local mob_pos = entity.object:getpos()
+	local new_hp = entity.object:get_hp() - damage
 
 	--update lifebar
-	mobf_lifebar.set(entity.lifebar,entity.object:get_hp()/entity.hp_max)
+	mobf_lifebar.set(entity.lifebar,new_hp / entity.hp_max)
 
 	-- make it die
-	if entity.object:get_hp() < 0.5 then
+	if new_hp < 0.5 then
 
 		mobf_lifebar.del(entity.lifebar)
 
@@ -158,21 +159,26 @@ end
 --! @param entity mob being hit
 --! @param attacker player/object hitting the mob
 -------------------------------------------------------------------------------
-function fighting.hit(entity,attacker)
+function fighting.hit(entity, attacker, now, time_from_last_punch, tool_capabilities,
+                      dir, damage)
 	mobf_assert_backtrace(entity ~= nil)
 	mobf_assert_backtrace(attacker ~= nil)
 	
+	dbg_mobf.fighting_lvl3("MOBF: ".. entity.data.name .. " got hit.")
 	
 	local tool = nil
+	local playername = nil
+	local attacker_is_owner = false
 	
 	if attacker:is_player() then
 		-- what's wielded by player
 		tool = attacker:get_wielded_item()
+		playername = attacker:get_player_name()
 	end
 
 	--execute user defined on_hit_callback
 	if entity.data.generic.on_hit_callback ~= nil and
-			entity.data.generic.on_hit_callback(entity,attacker, tool) == true
+			entity.data.generic.on_hit_callback(entity, attacker, tool) == true
 		then
 		dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " custom on hit handler superseeds generic handling")
 		return
@@ -185,27 +191,31 @@ function fighting.hit(entity,attacker)
 	local dir         = mobf_get_direction(targetpos,mob_basepos)
 	
 	
-	--don't attack spawner
+	-- don't attack spawner
 	if entity.dynamic_data.spawning.spawner ~= nil and
-		attacker:is_player() then
-		local playername = attacker:get_player_name()
-		if entity.dynamic_data.spawning.spawner == playername then
+		playername == entity.dynamic_data.spawning.spawner then
+		attacker_is_owner = true
+		
+		if tool:get_name() == "" then
+			
+			-- rotate if not fighting atm
 			if entity.dynamic_data.state.current ~= "combat" then
-				-- rotation is only done if player punches using hand
-				if tool:get_name() == "" then
-					local current_yaw = graphics.getyaw(entity)
-					graphics.setyaw(entity, current_yaw + math.pi/4)
-					return
-				end
+				dbg_mobf.fighting_lvl3("MOBF: ".. entity.data.name .. " punched by owner \"" ..
+				playername .. "\" rotating")
+				local current_yaw = graphics.getyaw(entity)
+				graphics.setyaw(entity, current_yaw + math.pi/4)
 			end
+		
+			return true
 		end
 	end
 
-	--play hit sound
+	-- play hit sound
 	if entity.data.sound ~= nil then
 		sound.play(mob_pos,entity.data.sound.hit);
 	end
 	
+	-- apply on hit texture modifier
 	if entity.data.combat ~= nil and
 		entity.data.combat.on_hit_overlay ~= nil then
 		mobf_assert_backtrace( entity.data.combat.on_hit_overlay.texture ~= nil)
@@ -235,7 +245,7 @@ function fighting.hit(entity,attacker)
 	fighting.push_back(entity,dir)
 	
 	--cause damage to be evaluated
-	fighting.dodamage(entity, attacker, "killed")
+	fighting.dodamage(entity, attacker, "killed", damage)
 
 	--dbg_mobf.fighting_lvl2("MOBF: attack chance is ".. entity.data.combat.angryness)
 	-- fight back
@@ -244,7 +254,8 @@ function fighting.hit(entity,attacker)
 			(entity.data.combat.angryness ~= nil and entity.data.combat.angryness > 0)
 
 		) and
-		entity.object:get_hp() > (entity.data.generic.base_health/3) then
+		(entity.object:get_hp() - damage) > (entity.data.generic.base_health/3) and
+		not attacker_is_owner then
 
 		--face attacker
 		if entity.mode ~= "3d" then
