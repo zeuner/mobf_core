@@ -55,6 +55,8 @@ local trace_levels = {
 	{ "lifebar",                  nil,           nil,                nil },
 	{ "attention",                nil,           nil,                nil },
 	{ "physics",                  nil,           nil,                nil },
+	{ "quest_inv",                nil,           nil,                nil },
+	{ "quest_engine",             nil,           nil,                nil },
 	
 }
 

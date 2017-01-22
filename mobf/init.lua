@@ -98,6 +98,8 @@ dofile (mobf_modpath .. "/factions.lua")
 dofile (mobf_modpath .. "/step_quota.lua")
 dofile (mobf_modpath .. "/physics.lua")
 dofile (mobf_modpath .. "/dyeing.lua")
+dofile (mobf_modpath .. "/quest_engine.lua")
+dofile (mobf_modpath .. "/quest_inventory.lua")
 
 --include spawning support
 dofile (mobf_modpath .. "/spawning.lua")
@@ -170,6 +172,10 @@ function mobf_init_framework()
 
 	minetest.log(LOGLEVEL_NOTICE,"MOBF: Initialize spawning subsystem..")
 	spawning.init()
+	
+	minetest.log(LOGLEVEL_NOTICE,"MOBF: Initialize quest engine..")
+	mobf_quest_engine.init()
+	mobf_quest_inventory.init()
 
 	minetest.log(LOGLEVEL_NOTICE,"MOBF: Initialize mobf supplied modules..")
 	mobf_init_modules()
@@ -413,6 +419,13 @@ function mobf_init_modules()
 			visiblename = mobf_dyeing.dye_caption,
 			handler		= mobf_dyeing.on_rightclick,
 			configcheck	= mobf_dyeing.config_check
+			})
+			
+	mobf.register_on_rightclick_callback({
+			name = "quest_inventory",
+			visiblename = "Gossip",
+			handler		= mobf_quest_inventory.quest_inventory_callback,
+			configcheck	= mobf_quest_inventory.config_check
 			})
 end
 

@@ -49,7 +49,7 @@ local mob_template = {
 		kill_result = nil,
 		
 		--! @brief [OPTIONAL] image to use for item instead of using mobname postfixed with _item, set to "mesh" to use 3d mesh as item
-		itemimage = nil
+		itemimage = nil,
 
 		--! @brief [OPTIONAL] armor groups of mob
 		armor_groups = nil,
@@ -403,6 +403,11 @@ local mob_template = {
 				"faction_4"
 				},
 			},
+	--! @brief [OPTIONAL] quests definition for this mob (WIP, subject to change!!)
+	quests = {
+		--! @brief [MANDATORY] list of quests supported by this mob
+		questlist = {}
+	},
 	--! @brief [OPTIONAL] used to specify different movement/model states,
 	--! you may specify as many states as you like
 	states = {
