@@ -37,6 +37,8 @@ mobf_assert_backtrace(not core.global_exists("mobf_spawn_algorithms"))
 --! @private
 mobf_spawn_algorithms = {}
 
+local spawning_data_identifier = "mobf_spawning_data"
+
 -------------------------------------------------------------------------------
 -- name: init()
 -- @function [parent=#spawning] init
@@ -46,19 +48,8 @@ mobf_spawn_algorithms = {}
 --
 -------------------------------------------------------------------------------
 function spawning.init()
-	--read from file
-	local world_path = minetest.get_worldpath()
 
-	local file,error = io.open(world_path .. "/mobf_spawning_data","r")
-
-	if file ~= nil then
-		local data_raw = file:read("*a")
-		file:close()
-
-		if data_raw ~= nil then
-			spawning.mob_spawn_data = minetest.deserialize(data_raw)
-		end
-	end
+	spawning.mob_spawn_data = mobf_read_world_specific_data(spawning_data_identifier)
 
 	if spawning.mob_spawn_data == nil then
 		spawning.mob_spawn_data = {}
@@ -81,18 +72,8 @@ end
 --! @param cyclic if this is true spawn data is saved in cyclic intervals
 -------------------------------------------------------------------------------
 function spawning.preserve_spawn_data(cyclic)
-
-	local world_path = minetest.get_worldpath()
-	local file,error = io.open(world_path .. "/mobf_spawning_data","w")
-
-	if error ~= nil then
-		minetest.log(LOGLEVEL_ERROR,"MOBF: failed to spawning preserve file")
-	end
-	mobf_assert_backtrace(file ~= nil)
-
-	local serialized_data = minetest.serialize(spawning.mob_spawn_data)
-
-	file:write(serialized_data)
+	
+	mobf_write_world_specific_data(spawning_data_identifier, spawning.mob_spawn_data)
 
 	if cyclic then
 		minetest.after(300,spawning.preserve_spawn_data,cyclic)
