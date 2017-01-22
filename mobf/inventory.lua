@@ -473,10 +473,10 @@ end
 --! @memberof mob_inventory
 --! @public
 --
---! @param entity mob being harvested
---! @param player player harvesting
+--! @param entity mob trader inventory beeing opened
+--! @param player player opening inventory
 --
---! @return true/false if handled by harvesting or not
+--! @return true/false if handled or not
 -------------------------------------------------------------------------------
 function mob_inventory.trader_callback(entity, player)
 	local unique_entity_id = string.gsub(tostring(entity),"table: ","")
