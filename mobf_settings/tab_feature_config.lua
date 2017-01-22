@@ -90,6 +90,12 @@ local function get_formspec(tabview, name, tabdata)
 				"Disable core pathfinding support;" ..
 				mobf_settings.setting_gettext("mobf_disable_pathfinding") .."]"
 	ypos = ypos + 0.5
+	
+	retval = retval .. "checkbox[1," .. ypos .. ";" ..
+				"cb_tutor_support;" ..
+				"Provide personal tutor for new players;" ..
+				mobf_settings.setting_gettext("mobf_personal_tutor") .."]"
+	ypos = ypos + 0.5
 
 	local showspawner = core.setting_get("adv_spawning.debug")
 	local spawner_setting_text = "false"
@@ -190,6 +196,12 @@ local function handle_settings_buttons(self, fields, tabname, tabdata)
 	if fields["cb_features_disable_pathfinding"] then
 		mobf_set_world_setting("mobf_disable_pathfinding",
 				core.is_yes(fields["cb_features_disable_pathfinding"]))
+		return true
+	end
+	
+	if fields["cb_tutor_support"] then
+		mobf_set_world_setting("mobf_personal_tutor",
+			core.is_yes(fields["cb_tutor_support"]))
 		return true
 	end
 
