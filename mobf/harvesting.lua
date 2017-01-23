@@ -144,6 +144,8 @@ function harvesting.catch(entity, player, now)
 					sound.play(entity.object:getpos(),entity.data.sound.catch);
 				end
 				
+				mobf_quest_engine.event(entity, player, "event_cought", { mob=entity.name, tool=catchtools[i].name, result=catch_result })
+				
 				spawning.remove(entity, "cought")
 				return true
 			end

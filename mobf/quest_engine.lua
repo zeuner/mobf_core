@@ -283,7 +283,6 @@ end
 function mobf_quest_engine.event_completed(eventdef, playerdata)
 
 	if eventdef.type == "event_harvest" then
-		dbg_mobf.quest_engine_lvl2("MOBF: player_events: " .. dump(playerdata.events))
 		local count = 0
 		for i, event in ipairs(playerdata.events) do
 			if event.type == "event_harvest" and event.parameter == eventdef.mobtype then
@@ -298,6 +297,24 @@ function mobf_quest_engine.event_completed(eventdef, playerdata)
 		return false
 	end
 
+	if eventdef.type == "event_cought" then
+		local count = 0
+		
+		for i, event in ipairs(playerdata.events) do
+			if event.type == "event_cought" and 
+				(event.mob == nil or event.mob == event.parameter.mob) and
+				(event.tool == nil or event.name == event.parameter.tool) and 
+				(event.result == nil or event.result == event.parameter.tool) then
+				count = count + 1
+			end
+		end
+		
+		if count >= eventdef.count then
+			return true
+		end
+		
+		return false
+	end
 
 	dbg_mobf.quest_engine_lvl3("MOBF: event_complete unknown eventtype \"" .. eventdef.type .. "\"")
 	return false
@@ -333,6 +350,10 @@ function mobf_quest_engine.event(entity, player, eventtype, parameter)
 		
 		if questdata.playerdata.events == nil then
 			questdata.playerdata.events = {}
+		end
+		
+		if parameter == nil then
+			parameter = {}
 		end
 		
 		table.insert(questdata.playerdata.events,
