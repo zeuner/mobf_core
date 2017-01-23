@@ -353,7 +353,7 @@ function mgen_probab_v2.jump_to(entity, now, movement_state, target)
 		
 		local distance = mobf_calc_distance_2d(jump_to_pos, target)
 		local traveltime = mobf_calc_travel_time(distance, entity.data.movement.max_speed, 0)
-		entity.object:move_to(jump_to_pos, true)
+		entity.object:moveto(jump_to_pos, true)
 		entity.object:setvelocity(vector_velocity)
 		entity.dynamic_data.mgen_probab_v2.eta = now + traveltime
 		entity.dynamic_data.mgen_probab_v2.moving = true
