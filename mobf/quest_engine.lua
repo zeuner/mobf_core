@@ -79,8 +79,16 @@ end
 --
 --! @return list of quest id's active for player
 -------------------------------------------------------------------------------
-function mobf_quest_engine.active_quests( playername)
+function mobf_quest_engine.active_quests(playername)
+	local retval = {}
+	
+	print("questdata: " .. dump(mobf_quest_engine.quest_data[playername]))
+	
+	for key, value in pairs(mobf_quest_engine.quest_data[playername].quests_active) do
+		table.insert(retval, key)
+	end
 
+	return retval
 end
 
 -------------------------------------------------------------------------------
@@ -141,8 +149,8 @@ function mobf_quest_engine.get_quest_state(questlist, playername)
 	
 	-- more then one quest possible suggest first one for the time beeing
 	if #possible_quests > 0 then
-		if mobf_quest_engine.quest_data[playername][possible_quests[1]] == nil then
-			mobf_quest_engine.quest_data[playername][possible_quests[1]] = {
+		if mobf_quest_engine.quest_data[playername].quests_active[possible_quests[1]] == nil then
+			mobf_quest_engine.quest_data[playername].quests_active[possible_quests[1]] = {
 				current_state = "init_state"
 			}
 		end
@@ -150,7 +158,7 @@ function mobf_quest_engine.get_quest_state(questlist, playername)
 		return {
 				questid = possible_quests[1],
 				questdef = mobf_quest_engine.definitions[possible_quests[1]],
-				playerdata = mobf_quest_engine.quest_data[playername][possible_quests[1]]
+				playerdata = mobf_quest_engine.quest_data[playername].quests_active[possible_quests[1]]
 			}
 	end
 
@@ -172,7 +180,7 @@ end
 function mobf_quest_engine.quest_action(quest_identifier, playername, action)
 
 	local questdef = mobf_quest_engine.definitions[quest_identifier]
-	local playerdata = mobf_quest_engine.quest_data[playername][quest_identifier]
+	local playerdata = mobf_quest_engine.quest_data[playername].quests_active[quest_identifier]
 	local queststate = questdef[playerdata.current_state]
 	
 	
@@ -181,24 +189,27 @@ function mobf_quest_engine.quest_action(quest_identifier, playername, action)
 	if action == "state_action_1" then
 		if queststate.action1 and queststate.action1.next_state then
 			playerdata.current_state = queststate.action1.next_state
+			playerdata.events = {}
 		end
 	end
 	
 	if action == "state_action_2" then
 		if queststate.action2 and queststate.action2.next_state then
 			playerdata.current_state = queststate.action2.next_state
+			playerdata.events = {}
 		end
 	end
 	
 	if action == "state_action_3" then
 		if queststate.action3 and queststate.action3.next_state then
 			playerdata.current_state = queststate.action3.next_state
+			playerdata.events = {}
 		end
 	end
 	
 	if playerdata.current_state == "quest_completed" then
 		table.insert(mobf_quest_engine.quest_data[playername].quests_completed, quest_identifier)
-		mobf_quest_engine.quest_data[playername][quest_identifier] = nil
+		mobf_quest_engine.quest_data[playername].quests_active[quest_identifier] = nil
 	end
 	
 	mobf_write_world_specific_data(quest_data_identifier,mobf_quest_engine.quest_data)
@@ -222,4 +233,113 @@ function mobf_quest_engine.init_questdata(playername)
 		quests_completed = {},
 		quests_active = {}
 	}
+end
+
+-------------------------------------------------------------------------------
+-- @function [parent=#mobf_quest_engine] action_available(entity, player, actiondef, playerdata)
+--
+--! @brief check if a specific action is available
+--! @memberof mobf_quest_engine
+--
+--! @param entity
+--! @param player
+--! @param actiondef
+--! @param playerdata
+--
+--! @return true/false
+-------------------------------------------------------------------------------
+function mobf_quest_engine.action_available(entity, player, actiondef, playerdata)
+	if actiondef.action_available_fct ~= nil then
+		return actiondef.action_available_fct(entity, player, actiondef, playerdata)
+	end
+	
+	if actiondef.events_required ~= nil then
+		
+		
+		
+		for i,eventdef in ipairs(actiondef.events_required) do
+			dbg_mobf.quest_engine_lvl2("MOBF: action requires: " .. dump(eventdef))
+			
+			if not mobf_quest_engine.event_completed(eventdef,playerdata) then
+				return false
+			end
+		end
+	end
+	
+	return true
+end
+
+-------------------------------------------------------------------------------
+-- @function [parent=#mobf_quest_engine] event_completed(eventdef, playerdata)
+--
+--! @brief check if player did complete a specific event requirement
+--! @memberof mobf_quest_engine
+--
+--! @param eventdef description of event requirement
+--! @param playerdata player event data
+--
+--! @return true/false
+-------------------------------------------------------------------------------
+function mobf_quest_engine.event_completed(eventdef, playerdata)
+
+	if eventdef.type == "event_harvest" then
+		dbg_mobf.quest_engine_lvl2("MOBF: player_events: " .. dump(playerdata.events))
+		local count = 0
+		for i, event in ipairs(playerdata.events) do
+			if event.type == "event_harvest" and event.parameter == eventdef.mobtype then
+				count = count + 1
+			end
+		end
+		
+		if count >= eventdef.count then
+			return true
+		end
+		
+		return false
+	end
+
+
+	dbg_mobf.quest_engine_lvl3("MOBF: event_complete unknown eventtype \"" .. eventdef.type .. "\"")
+	return false
+end
+
+
+-------------------------------------------------------------------------------
+-- @function [parent=#mobf_quest_engine] event(entity, player, eventtype, parameters)
+--
+--! @brief tell quest engine about a happened event
+--! @memberof mobf_quest_engine
+--
+--! @param entity related to event
+--! @param player causing the event
+--! @param eventtype type of event
+--! @param parameter custom parameter
+--
+-------------------------------------------------------------------------------
+function mobf_quest_engine.event(entity, player, eventtype, parameter)
+
+	if not player:is_player() then
+		return
+	end
+
+	local playername = player:get_player_name()
+	
+	dbg_mobf.quest_engine_lvl3("MOBF: event type=" .. eventtype .. " playername=" .. playername)
+	
+	local questlist = mobf_quest_engine.active_quests(playername)
+	
+	for i, quest in ipairs(questlist) do
+		local questdata = mobf_quest_engine.get_quest_state({ quest }, playername)
+		
+		if questdata.playerdata.events == nil then
+			questdata.playerdata.events = {}
+		end
+		
+		table.insert(questdata.playerdata.events,
+			{ type=eventtype, parameter=parameter}
+			)
+		
+	end
+	
+	mobf_write_world_specific_data(quest_data_identifier,mobf_quest_engine.quest_data)
 end

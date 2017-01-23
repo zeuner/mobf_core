@@ -248,6 +248,8 @@ function harvesting.callback(entity,player,now)
 			if not player:get_inventory():add_item("main", result) then
 				-- TODO place as item at entity pos
 			end
+			
+			mobf_quest_engine.event(entity, player, "event_harvest", entity.name)
 
 			--check if tool is consumed by action
 			if entity.data.harvest.tool_consumed and

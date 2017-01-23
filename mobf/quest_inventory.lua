@@ -239,20 +239,17 @@ function mobf_quest_inventory.create_formspec(player, entity, playername, questd
 	end
 	
 	if queststate.action1 ~= nil and 
-		(queststate.action1.action_available_fct == nil or 
-			queststate.action1.action_available_fct(entity, player, questdata)) then
+		mobf_quest_engine.action_available(entity, player, queststate.action1, questdata.playerdata) then
 		retval = retval .. "button_exit[0.2,4.5;7.75,0;btn_action1;" .. S(queststate.action1.msg) .. "]"
 	end
 	
 	if queststate.action2 ~= nil and 
-		(queststate.action2.action_available_fct == nil or 
-			queststate.action2.action_available_fct(entity, player, questdata))then
+		mobf_quest_engine.action_available(entity, player, queststate.action2, questdata.playerdata) then
 		retval = retval .. "button_exit[0.2,5.25;7.75,0;btn_action2;" .. S(queststate.action2.msg) .. "]"
 	end
 	
 	if queststate.action3 ~= nil and 
-		(queststate.action3.action_available_fct == nil or 
-			queststate.action3.action_available_fct(entity, player, questdata))then
+		mobf_quest_engine.action_available(entity, player, queststate.action3, questdata.playerdata) then
 		retval = retval .. "button_exit[0.2,6;7.75,0;btn_action3;" .. S(queststate.action3.msg) .. "]"
 	end
 	
