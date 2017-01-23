@@ -258,10 +258,8 @@ function fighting.hit(entity, attacker, now, time_from_last_punch, tool_capabili
 		not attacker_is_owner then
 
 		--face attacker
-		if entity.mode ~= "3d" then
-			graphics.setyaw(entity, mobf_calc_yaw(dir.x,dir.z)-math.pi)
-		end
-
+		graphics.look_to_object(entity, attacker)
+		
 		dbg_mobf.fighting_lvl2("MOBF: mob with chance of fighting back attacked")
 		--either the mob hasn't been attacked by now or a new player joined fight
 

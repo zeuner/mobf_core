@@ -365,3 +365,28 @@ function graphics.getyaw(entity)
 	
 	return retval
 end
+
+------------------------------------------------------------------------------
+-- @function [parent=#graphics] look_to_object(entity,object)
+--
+--! @brief make entity look towards the specified object
+--! @memberof graphics
+--
+--! @param entity entity to set yaw for
+--! @param object player or other entity to look to
+-------------------------------------------------------------------------------
+function graphics.look_to_object(entity, object)
+	local pos = entity.object:getpos()
+
+	--rotate mob to face player
+	local direction = mobf_get_direction(pos, object:getpos())
+
+	if entity.mode == "3d" then
+		graphics.setyaw(entity,
+			mobf_calc_yaw(direction.x,direction.z))
+	else
+		graphics.setyaw(entity,
+			mobf_calc_yaw(direction.x,direction.z)+math.pi/2)
+	end
+
+end

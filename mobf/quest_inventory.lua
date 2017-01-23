@@ -127,17 +127,8 @@ function mobf_quest_inventory.quest_inventory_callback(entity, player)
 			minetest.show_formspec(playername,"")
 			return
 		end
-	
-		--rotate mob to face player
-		local direction = mobf_get_direction(pos, player:getpos())
-
-		if entity.mode == "3d" then
-			graphics.setyaw(entity,
-				mobf_calc_yaw(direction.x,direction.z))
-		else
-			graphics.setyaw(entity,
-				mobf_calc_yaw(direction.x,direction.z)+math.pi/2)
-		end
+		
+		graphics.look_to_object(entity, player)
 
 		attention.increase_attention_level(entity,player,10)
 
