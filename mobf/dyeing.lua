@@ -60,6 +60,10 @@ end
 function mobf_dyeing.get_harvest_result(entity)
 
 	local result = nil
+	
+	if entity.dynamic_data.dyeing == nil then
+		entity.dynamic_data.dyeing = {}
+	end
 
 	if entity.data.harvest.dye_result_base then
 		local color = entity.dynamic_data.dyeing.color
