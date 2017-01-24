@@ -73,7 +73,7 @@ function mobf_add_mob(mob)
 
 	--check if mob is blacklisted
 	--mobs from the blacklist are pre-registered at startup
-	if mobf_contains(mobf_rtd.registred_mob,mob.modname.. ":"..mob.name) then
+	if utils.contains(mobf_rtd.registred_mob,mob.modname.. ":"..mob.name) then
 		mobf.blacklisthandling(mob)
 		return false
 	end
@@ -225,7 +225,7 @@ function mobf_spawner_register(name,mobname,spawndef)
 	end
 
 	--check if mob is blacklisted
-	if mobf_contains(mobf_rtd.registred_mob,mobname) then
+	if utils.contains(mobf_rtd.registred_mob,mobname) then
 		minetest.log(LOGLEVEL_NOTICE,"MOBF: " .. mobname .. " is blacklisted, not adding spawner")
 		return false
 	end

@@ -175,7 +175,7 @@ function mobf_init_framework()
 	spawning.init()
 	
 	minetest.log(LOGLEVEL_NOTICE,"MOBF: Initialize quest engine..")
-	mobf_quest_engine.init()
+	quest_engine.init()
 	mobf_quest_inventory.init()
 
 	minetest.log(LOGLEVEL_NOTICE,"MOBF: Initialize mobf supplied modules..")

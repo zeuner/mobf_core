@@ -561,7 +561,7 @@ function mob_state.BuiltinHungerPrecondition(mob)
 					for i=1,#objectlist,1 do
 						local luaentity = objectlist[i]:get_luaentity()
 						if luaentity ~= nil and
-							mobf_contains(mob.hunger.target_entities,luaentity.name) then
+							utils.contains(mob.hunger.target_entities,luaentity.name) then
 							table.insert(target_entities,objectlist[i])
 						end
 					end

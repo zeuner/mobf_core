@@ -32,30 +32,6 @@ function mobf_get_time_ms()
 end
 
 -------------------------------------------------------------------------------
--- name: mobf_contains(cur_table,element)
---
---! @brief check if element is in table
---
---! @param cur_table table to look in
---! @param element element to look for
---! @return true/false
--------------------------------------------------------------------------------
-function mobf_contains(cur_table,element)
-
-    if cur_table == nil then
-        return false
-    end
-
-    for i,v in ipairs(cur_table) do
-        if v == element then
-            return true
-        end
-    end
-
-    return false
-end
-
--------------------------------------------------------------------------------
 -- name: MIN(a,b)
 --
 --! @brief minimum of two numbers
@@ -233,7 +209,7 @@ function mobf_objects_around(pos,range,ignorelist)
 		local luaentity = objectlist[i]:get_luaentity()
 		if luaentity ~= nil then
 			if not luaentity.mobf_spawner and
-				not mobf_contains(ignorelist,luaentity.name) then
+				not utils.contains(ignorelist,luaentity.name) then
 				cleaned_objectcount = cleaned_objectcount + 1
 			end
 		else
@@ -484,7 +460,7 @@ function mobf_ground_distance(pos_raw,media,max_check_height)
 		max_check_height = 32
 	end
 
-	while node_to_check ~= nil and mobf_contains(media,node_to_check.name) and
+	while node_to_check ~= nil and utils.contains(media,node_to_check.name) and
 			count < max_check_height do
 		count = count +1
 		pos = {x=pos.x,y=pos.y-1,z=pos.z};
