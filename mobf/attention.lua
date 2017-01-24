@@ -170,7 +170,7 @@ function attention.callback(entity,now)
 
 				--is in audible distance
 				if entity.data.attention.hear_distance ~= nil then
-					local distance = mobf_calc_distance(own_pos,remote_pos)
+					local distance = vector.distance(own_pos,remote_pos)
 
 					if distance < entity.data.attention.hear_distance then
 						hear_addon = true

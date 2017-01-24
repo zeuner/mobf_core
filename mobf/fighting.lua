@@ -334,7 +334,7 @@ function fighting.identify_combat_state(entity,distance)
 	if distance == nil then
 		local mob_pos    = entity.object:getpos()
 		local targetpos  = target:getpos()
-		distance   = mobf_calc_distance(mob_pos,targetpos)
+		distance   = vector.distance(mob_pos,targetpos)
 	end
 
 	dbg_mobf.fighting_lvl2("MOBF: Identify combat state, mob: " .. entity.data.name .. " distance: " .. distance)
@@ -590,7 +590,7 @@ function fighting.combat(entity,now,dtime)
 		--calculate some basic data
 		local mob_pos    = entity.object:getpos()
 		local targetpos  = entity.dynamic_data.combat.target:getpos()
-		local distance   = mobf_calc_distance(mob_pos,targetpos)
+		local distance   = vector.distance(mob_pos,targetpos)
 		local dir        = mobf_get_direction(targetpos,mob_pos)
 		local target     = entity.dynamic_data.combat.target
 
@@ -780,7 +780,7 @@ function fighting.get_target(entity)
 
 	for i,v in ipairs(targets_within_sight) do
 
-		local distance = mobf_calc_distance(entity.object:getpos(),v:getpos())
+		local distance = vector.distance(entity.object:getpos(),v:getpos())
 
 		if min_distance < 0 or
 			distance < min_distance then

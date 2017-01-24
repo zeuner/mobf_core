@@ -399,7 +399,7 @@ end
 function mobf_line_of_sight(pos1,pos2)
 
 	--print("Checking line of sight between "..printpos(pos1).." and "..printpos(pos2))
-	local distance = mobf_calc_distance(pos1,pos2)
+	local distance = vector.distance(pos1,pos2)
 
 	local normalized_vector = {	x=(pos2.x-pos1.x)/distance,
 					y=(pos2.y-pos1.y)/distance,

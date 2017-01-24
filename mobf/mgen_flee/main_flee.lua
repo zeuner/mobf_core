@@ -203,8 +203,8 @@ function mgen_flee.callback(entity,now)
 		local current_velocity = entity.object:getvelocity()
 		local predicted_pos =
 			movement_generic.predict_next_block(basepos,current_velocity,current_accel)
-		local current_distance = mobf_calc_distance(targetpos,basepos)
-		local predicted_distance = mobf_calc_distance(targetpos,predicted_pos)
+		local current_distance = vector.distance(targetpos,basepos)
+		local predicted_distance = vector.distance(targetpos,predicted_pos)
 
 		if not (predicted_distance > current_distance) then
 

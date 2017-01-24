@@ -337,8 +337,8 @@ function direction_control.redirect_safe_pos_callback(entity, movement_state, pr
 	if safe_pos ~= nil then
 		dbg_mobf.pmovement_lvl2(
 			"MOBF:\talready redirecting " .. printpos(entity:getbasepos()) .. "-->" .. printpos(safe_pos))
-		local new_distance = mobf_calc_distance(entity:getbasepos(), safe_pos)
-		local predicted_distance = mobf_calc_distance(predicted_pos, safe_pos)
+		local new_distance = vector.distance(entity:getbasepos(), safe_pos)
+		local predicted_distance = vector.distance(predicted_pos, safe_pos)
 		
 		if new_distance > last_distance then
 			safe_pos = nil
@@ -391,7 +391,7 @@ function direction_control.redirect_safe_pos(entity, pos)
 				"MOBF:\tstoring redirection pos " .. printpos(pos))
 		entity.dynamic_data.movement.redirect_safe_pos = pos
 		entity.dynamic_data.movement.redirect_safe_pos_distance = 
-				mobf_calc_distance(entity:getbasepos(), pos)
+				vector.distance(entity:getbasepos(), pos)
 	else
 		dbg_mobf.pmovement_lvl2(
 				"MOBF:\tresetting redirection pos")

@@ -363,7 +363,7 @@ function mobf_physics.damage_handler(entity, now, basepos, state)
 			entity.dynamic_data.physics.last_velocity = current_velocity
 		end
 	
-		local speeddelta = mobf_calc_distance(entity.dynamic_data.physics.last_velocity,current_velocity)
+		local speeddelta = vector.distance(entity.dynamic_data.physics.last_velocity,current_velocity)
 		entity.dynamic_data.physics.last_velocity = current_velocity
 		
 		dbg_mobf.physics_lvl1("speeddelta: " .. speeddelta .. 

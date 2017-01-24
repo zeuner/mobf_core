@@ -70,6 +70,7 @@ dofile (mobf_modpath .. "/debug_trace.lua")
 
 --include engine
 dofile (mobf_modpath .. "/utils/error_handling.lua")
+dofile (mobf_modpath .. "/utils/legacy.lua")
 dofile (mobf_modpath .. "/utils/settings.lua")
 dofile (mobf_modpath .. "/utils/generic_functions.lua")
 dofile (mobf_modpath .. "/utils/data_storage.lua")

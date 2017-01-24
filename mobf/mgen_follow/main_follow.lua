@@ -176,7 +176,7 @@ function mgen_follow.check_target(entity, basepos, targetpos,
 
 		--real pos is relevant not basepos for flying mobs
 		--target for flying mobs is always slightly above it's target
-		distance = mobf_calc_distance(entity.object:getpos(),
+		distance = vector.distance(entity.object:getpos(),
 					{x=targetpos.x, y=(targetpos.y+1), z=targetpos.z })
 		height_distance = entity.object:getpos().y - (targetpos.y+1)
 	

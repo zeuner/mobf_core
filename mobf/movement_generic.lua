@@ -142,7 +142,7 @@ function movement_generic.predict_next_block(pos,velocity,acceleration)
 
 	-- check if after prediction time we would have traveled more than half 
 	-- of a block and adjust to not predict to far
-	while mobf_calc_distance(pos,pos_predicted) > 1 do
+	while vector.distance(pos,pos_predicted) > 1 do
 
 		pos_predicted = movement_generic.calc_new_pos(pos,
 								acceleration,

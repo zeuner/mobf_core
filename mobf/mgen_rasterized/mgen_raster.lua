@@ -106,7 +106,7 @@ function mgen_raster.callback(entity,now)
 	end
 	
 	--check distance to target (target reached or missed)
-	local distance_to_target = mobf_calc_distance(basepos,entity.dynamic_data.movement.target)
+	local distance_to_target = vector.distance(basepos,entity.dynamic_data.movement.target)
 	if distance_to_target > 2.0 or
 		distance_to_target < 0.1 then
 		mgen_raster.stop(entity)
