@@ -25,3 +25,17 @@ if vector.distance == nil then
 				math.pow(pos1.z-pos2.z,2))
 		end
 end
+
+
+if vector.round == nil then
+	vector.round = function(pos)
+		if pos == nil then
+			return pos
+		end
+	
+		return { x=math.floor(pos.x + 0.5),
+				y=math.floor(pos.y + 0.5),
+				z=math.floor(pos.z + 0.5)
+			}
+	end
+end

@@ -187,8 +187,8 @@ function movement_generic.predict_enter_next_block(entity,pos,velocity,accelerat
 	local sameblock = function(a,b)
 		for i=1,#a,1 do
 			if not mobf_pos_is_same(
-						mobf_round_pos(a[i]),
-						mobf_round_pos(b[i])) then
+						vector.round(a[i]),
+						vector.round(b[i])) then
 				return false
 			end
 		end

@@ -342,7 +342,7 @@ function spawning.population_density_check(entity,now)
 
 	entity.dynamic_data.spawning.ts_dense_check = now
 
-	local entitypos = mobf_round_pos(entity.object:getpos())
+	local entitypos = vector.round(entity.object:getpos())
 
 	--mob either not initialized completely or a bug
 	if mobf_pos_is_zero(entitypos) then

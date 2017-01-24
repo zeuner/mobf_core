@@ -41,7 +41,7 @@ environment_list = {}
 function environment.get_pos_same_level(pos_raw,maxsearcharea,entity,checkfunc)
 	dbg_mobf.environment_lvl2("MOBF: --> get_pos_same_level "
 		.. printpos(pos_raw))
-	local pos = mobf_round_pos(pos_raw)
+	local pos = vector.round(pos_raw)
 	
 	-- first check rounded pos
 	local pos_quality = environment.pos_quality(pos,entity)

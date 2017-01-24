@@ -397,7 +397,7 @@ function mobf.activate_handler(self,staticdata)
 		if mobf_pos_is_zero(preserved_data.spawnpoint) ~= true then
 			self.dynamic_data.spawning.spawnpoint = preserved_data.spawnpoint
 		else
-			self.dynamic_data.spawning.spawnpoint = mobf_round_pos(pos)
+			self.dynamic_data.spawning.spawnpoint = vector.round(pos)
 		end
 		self.dynamic_data.spawning.player_spawned = preserved_data.playerspawned
 

@@ -134,25 +134,6 @@ function mobf_get_current_time()
 end
 
 -------------------------------------------------------------------------------
--- name: mobf_round_pos(pos)
---
---! @brief calculate integer position
---
---! @param pos position to be rounded
---! @return rounded position
--------------------------------------------------------------------------------
-function mobf_round_pos(pos)
-	if pos == nil then
-		return pos
-	end
-
-	return { 	x=math.floor(pos.x + 0.5),
-			y=math.floor(pos.y + 0.5),
-			z=math.floor(pos.z + 0.5)
-		 }
-end
-
--------------------------------------------------------------------------------
 -- name: mobf_find_entity(newobject) DEPRECATED
 --
 --! @brief find entity by object reference

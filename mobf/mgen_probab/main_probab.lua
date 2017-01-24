@@ -577,7 +577,7 @@ function movement_gen.fix_current_pos(entity,movement_state, current_state)
 
 	if current_state == "collision" then
 
-		local current_pos = mobf_round_pos(movement_state.basepos);
+		local current_pos = vector.round(movement_state.basepos);
 		local current_node = minetest.get_node( current_pos );
 
 		local walkable = false
