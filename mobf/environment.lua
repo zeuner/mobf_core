@@ -770,7 +770,7 @@ function environment.pos_quality(pos,entity)
 				if ground_distance <= data.max_ground_distance then
 					local is_center = false
 					
-					if mobf_pos_is_same(data.centerpos,pos) then
+					if vector.equals(data.centerpos,pos) then
 						data.retval.center_geometry_quality = 100
 						is_center = true
 					end
@@ -836,7 +836,7 @@ function environment.pos_quality(pos,entity)
 						end
 					end
 				else
-					if mobf_pos_is_same(data.centerpos,pos) then
+					if vector.equals(data.centerpos,pos) then
 						data.retval.center_geometry_quality = 30
 					end
 					data.have_no_contact = data.have_no_contact + 1
@@ -935,7 +935,7 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 
 	--check if mob at pos will be in correct environment
 	for i=1,#cornerpositions,1 do
-		if not mobf_pos_is_same(lastpos,cornerpositions[i]) then
+		if not vector.equals(lastpos,cornerpositions[i]) then
 			local node_to_check = minetest.get_node(cornerpositions[i])
 
 			if node_to_check == nil then
@@ -949,7 +949,7 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 					printpos(cornerpositions[i]) .. " -- " .. printpos(pos) ..
 					" not within environment")
 
-				if mobf_pos_is_same(pos,cornerpositions[i]) then
+				if vector.equals(pos,cornerpositions[i]) then
 					if core.registered_nodes[node_to_check.name].liquidtype == "source" or
 						core.registered_nodes[node_to_check.name].liquidtype == "flowing" then
 						retval = "in_water"

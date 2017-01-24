@@ -39,3 +39,26 @@ if vector.round == nil then
 			}
 	end
 end
+
+if vector.equals == nil then
+	vector.equals = function(pos1,pos2)
+		if pos1 == nil or
+			pos2 == nil then
+			return false
+		end
+
+		if pos1.x ~= pos2.x or
+			pos1.y ~= pos2.y or
+			pos1.z ~= pos2.z or
+			pos1.x == nil or
+			pos1.y == nil or
+			pos1.z == nil or
+			pos2.x == nil or
+			pos2.y == nil or
+			pos2.z == nil then
+			return false
+		end
+	
+		return true
+	end
+end

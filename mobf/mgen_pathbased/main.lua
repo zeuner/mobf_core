@@ -335,7 +335,7 @@ function p_mov_gen.set_target(entity, target, follow_speedup, max_distance)
 	end
 
 	if entity.dynamic_data.p_movement.lasttargetpos ~= nil then
-		if mobf_pos_is_same(entity.dynamic_data.p_movement.lasttargetpos,
+		if vector.equals(entity.dynamic_data.p_movement.lasttargetpos,
 			targetpos) then
 			return true
 		end
