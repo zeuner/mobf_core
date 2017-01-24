@@ -49,7 +49,7 @@ local spawning_data_identifier = "mobf_spawning_data"
 -------------------------------------------------------------------------------
 function spawning.init()
 
-	spawning.mob_spawn_data = mobf_read_world_specific_data(spawning_data_identifier)
+	spawning.mob_spawn_data = utils.read_world_data(spawning_data_identifier)
 
 	if spawning.mob_spawn_data == nil then
 		spawning.mob_spawn_data = {}
@@ -73,7 +73,7 @@ end
 -------------------------------------------------------------------------------
 function spawning.preserve_spawn_data(cyclic)
 	
-	mobf_write_world_specific_data(spawning_data_identifier, spawning.mob_spawn_data)
+	utils.write_world_data(spawning_data_identifier, spawning.mob_spawn_data)
 
 	if cyclic then
 		minetest.after(300,spawning.preserve_spawn_data,cyclic)

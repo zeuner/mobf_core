@@ -36,7 +36,7 @@ function mobf_quest_engine.init()
 
 	mobf_quest_engine.definitions = {}
 
-	mobf_quest_engine.quest_data = mobf_read_world_specific_data(quest_data_identifier)
+	mobf_quest_engine.quest_data = utils.read_world_data(quest_data_identifier)
 	
 	if mobf_quest_engine.quest_data == nil then
 		mobf_quest_engine.quest_data = {}
@@ -212,7 +212,7 @@ function mobf_quest_engine.quest_action(quest_identifier, playername, action)
 		mobf_quest_engine.quest_data[playername].quests_active[quest_identifier] = nil
 	end
 	
-	mobf_write_world_specific_data(quest_data_identifier,mobf_quest_engine.quest_data)
+	utils.write_world_data(quest_data_identifier,mobf_quest_engine.quest_data)
 end
 
 
@@ -362,5 +362,5 @@ function mobf_quest_engine.event(entity, player, eventtype, parameter)
 		
 	end
 	
-	mobf_write_world_specific_data(quest_data_identifier,mobf_quest_engine.quest_data)
+	utils.write_world_data(quest_data_identifier,mobf_quest_engine.quest_data)
 end
