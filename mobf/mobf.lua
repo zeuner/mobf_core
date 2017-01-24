@@ -1393,9 +1393,12 @@ function mobf.call_on_corner_positions(entity, pos, check_center, fct, data)
 	end
 
 	for i=1,#cornerpositions,1 do
-		if not vector.equals(lastpos,cornerpositions[i]) then
+		if lastpos and not not vector.equals(lastpos,cornerpositions[i]) then
 			local continue, rv2 = fct(entity, cornerpositions[i], data)
-			table.insert(retvals, { pos=cornerpositions[i], result=rv2 } )
+			
+			if rv2 ~= nil then
+				table.insert(retvals, { pos=cornerpositions[i], result=rv2 } )
+			end
 			
 			if not continue then
 				break
@@ -1405,5 +1408,9 @@ function mobf.call_on_corner_positions(entity, pos, check_center, fct, data)
 		lastpos = cornerpositions[i]
 	end
 	
-	return retvals
+	if #retvals > 0 then
+		return retvals
+	else
+		return nil
+	end
 end

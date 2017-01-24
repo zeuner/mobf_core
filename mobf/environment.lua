@@ -918,63 +918,53 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 
 	local min_ground_distance,max_ground_distance = environment.get_min_max_ground_dist(entity)
 
-	local cornerpositions = {}
 
-	table.insert(cornerpositions,pos)
-	--read positions at corners
-	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[4] -0.01,y=pos.y,z=pos.z + entity.collisionbox[6] -0.01})
-	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[4] -0.01,y=pos.y,z=pos.z + entity.collisionbox[3] +0.01})
-	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[1] +0.01,y=pos.y,z=pos.z + entity.collisionbox[6] -0.01})
-	table.insert(cornerpositions,{x=pos.x + entity.collisionbox[1] +0.01,y=pos.y,z=pos.z + entity.collisionbox[3] +0.01})
-
-	local lastpos = nil
-
-	local retval = "temp_ok"
+	local checkfct = function(entity, pos, data)
 	
-	local min_ground_distance = 33000 -- above max height
+		local node_to_check = minetest.get_node(cornerpositions[i])
 
-	--check if mob at pos will be in correct environment
-	for i=1,#cornerpositions,1 do
-		if not vector.equals(lastpos,cornerpositions[i]) then
-			local node_to_check = minetest.get_node(cornerpositions[i])
+		if node_to_check == nil then
+			mobf_bug_warning(LOGLEVEL_ERROR,"MOBF: BUG!!!! checking position with invalid node")
+			return false, "invalid"
+		end
 
-			if node_to_check == nil then
-				mobf_bug_warning(LOGLEVEL_ERROR,"MOBF: BUG!!!! checking position with invalid node")
-				retval = "invalid"
-				break
-			end
+		if not environment.is_media_element(node_to_check.name,entity.environment.media) == true then
+			dbg_mobf.environment_lvl3("MOBF: " .. i .. ": " ..
+				printpos(cornerpositions[i]) .. " -- " .. printpos(pos) ..
+				" not within environment")
 
-			if not environment.is_media_element(node_to_check.name,entity.environment.media) == true then
-				dbg_mobf.environment_lvl3("MOBF: " .. i .. ": " ..
-					printpos(cornerpositions[i]) .. " -- " .. printpos(pos) ..
-					" not within environment")
-
-				if vector.equals(pos,cornerpositions[i]) then
-					if core.registered_nodes[node_to_check.name].liquidtype == "source" or
-						core.registered_nodes[node_to_check.name].liquidtype == "flowing" then
-						retval = "in_water"
-						break
-					end
-
-					if node_to_check.name == "air" then
-						retval = "in_air"
-						break
-					end
-
-					--TODO maybe replace by "invalid medium"
-				else
-					retval = "collision"
+			if vector.equals(pos,cornerpositions[i]) then
+				if core.registered_nodes[node_to_check.name].liquidtype == "source" or
+					core.registered_nodes[node_to_check.name].liquidtype == "flowing" then
+					return false, "in_water"
 				end
+
+				if node_to_check.name == "air" then
+					return false, "in_air"
+				end
+
+			else
+				return true, "collision"
 			end
-			
-			min_ground_distance =
+		end
+
+		data.min_ground_distance =
 				MIN(min_ground_distance,
 					mobf_ground_distance(cornerpositions[i],entity.environment.media))
-		end
-		lastpos = cornerpositions[i]
+		return true, nil
+	end
+	
+	local data = {
+		min_ground_distance = 33000 -- above max height
+		}
+	
+	
+	local retval = mobf.call_on_corner_positions(entity, pos, false, checkfct, data)
+
+	if retval == nil then
+		retval = "temp_ok"
 	end
 
-	--
 	if retval == "temp_ok" then
 		dbg_mobf.environment_lvl3("MOBF: \tin environment")
 		local ground_distance = mobf_ground_distance(pos,entity.environment.media)
@@ -1045,7 +1035,6 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 			end
 		end
 	end
-	
 
 	return retval
 end
