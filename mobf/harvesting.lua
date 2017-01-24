@@ -144,7 +144,7 @@ function harvesting.catch(entity, player, now)
 					sound.play(entity.object:getpos(),entity.data.sound.catch);
 				end
 				
-				mobf_quest_engine.event(entity, player, "event_cought", { mob=entity.name, tool=catchtools[i].name, result=catch_result })
+				quest_engine.event(entity, player, "event_cought", { mob=entity.name, tool=catchtools[i].name, result=catch_result })
 				
 				spawning.remove(entity, "cought")
 				return true
@@ -251,7 +251,7 @@ function harvesting.callback(entity,player,now)
 				-- TODO place as item at entity pos
 			end
 			
-			mobf_quest_engine.event(entity, player, "event_harvest", entity.name)
+			quest_engine.event(entity, player, "event_harvest", entity.name)
 
 			--check if tool is consumed by action
 			if entity.data.harvest.tool_consumed and

@@ -99,7 +99,6 @@ dofile (mobf_modpath .. "/factions.lua")
 dofile (mobf_modpath .. "/step_quota.lua")
 dofile (mobf_modpath .. "/physics.lua")
 dofile (mobf_modpath .. "/dyeing.lua")
-dofile (mobf_modpath .. "/quest_engine.lua")
 dofile (mobf_modpath .. "/quest_inventory.lua")
 
 --include spawning support
@@ -175,7 +174,6 @@ function mobf_init_framework()
 	spawning.init()
 	
 	minetest.log(LOGLEVEL_NOTICE,"MOBF: Initialize quest engine..")
-	quest_engine.init()
 	mobf_quest_inventory.init()
 
 	minetest.log(LOGLEVEL_NOTICE,"MOBF: Initialize mobf supplied modules..")

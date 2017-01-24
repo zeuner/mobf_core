@@ -100,7 +100,7 @@ function mobf_quest_inventory.quest_inventory_callback(entity, player)
 		return
 	end
 	
-	local questdata = mobf_quest_engine.get_quest_state(entity.data.quest.questlist, playername)
+	local questdata = quest_engine.get_quest_state(entity.data.quest.questlist, playername)
 
 	if questdata == nil then
 		-- TODO provide some meaningless gossip if there ain't any quest
@@ -161,15 +161,15 @@ function mobf_quest_inventory.quest_inventory_response(player,formname,fields)
 	if formname == "formspec_questinventory" then
 
 		if fields["btn_action1"] ~= nil then
-			mobf_quest_engine.quest_action(fields["questid"], player:get_player_name(), "state_action_1")
+			quest_engine.quest_action(fields["questid"], player:get_player_name(), "state_action_1")
 		end
 
 		if fields["btn_action2"] ~= nil then
-			mobf_quest_engine.quest_action(fields["questid"], player:get_player_name(), "state_action_2")
+			quest_engine.quest_action(fields["questid"], player:get_player_name(), "state_action_2")
 		end
 		
 		if fields["btn_action3"] ~= nil then
-			mobf_quest_engine.quest_action(fields["questid"], player:get_player_name(), "state_action_3")
+			quest_engine.quest_action(fields["questid"], player:get_player_name(), "state_action_3")
 		end
 	
 		return true
@@ -230,17 +230,17 @@ function mobf_quest_inventory.create_formspec(player, entity, playername, questd
 	end
 	
 	if queststate.action1 ~= nil and 
-		mobf_quest_engine.action_available(entity, player, queststate.action1, questdata.playerdata) then
+		quest_engine.action_available(entity, player, queststate.action1, questdata.playerdata) then
 		retval = retval .. "button_exit[0.2,4.5;7.75,0;btn_action1;" .. S(queststate.action1.msg) .. "]"
 	end
 	
 	if queststate.action2 ~= nil and 
-		mobf_quest_engine.action_available(entity, player, queststate.action2, questdata.playerdata) then
+		quest_engine.action_available(entity, player, queststate.action2, questdata.playerdata) then
 		retval = retval .. "button_exit[0.2,5.25;7.75,0;btn_action2;" .. S(queststate.action2.msg) .. "]"
 	end
 	
 	if queststate.action3 ~= nil and 
-		mobf_quest_engine.action_available(entity, player, queststate.action3, questdata.playerdata) then
+		quest_engine.action_available(entity, player, queststate.action3, questdata.playerdata) then
 		retval = retval .. "button_exit[0.2,6;7.75,0;btn_action3;" .. S(queststate.action3.msg) .. "]"
 	end
 	
