@@ -100,6 +100,7 @@ dofile (mobf_modpath .. "/step_quota.lua")
 dofile (mobf_modpath .. "/physics.lua")
 dofile (mobf_modpath .. "/dyeing.lua")
 dofile (mobf_modpath .. "/quest_inventory.lua")
+dofile (mobf_modpath .. "/quest_events.lua")
 
 --include spawning support
 dofile (mobf_modpath .. "/spawning.lua")
@@ -114,7 +115,7 @@ dofile (mobf_modpath .. "/mgen_pathbased/main.lua")
 dofile (mobf_modpath .. "/mgen_flee/main_flee.lua")
 dofile (mobf_modpath .. "/mov_gen_none.lua")
 
-mobf_version = "2.5.0"
+mobf_version = "2.5.90"
 
 
 --! @brief main initialization function

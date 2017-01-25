@@ -21,13 +21,20 @@ local quest_data_identifier = "quest_data"
 -------------------------------------------------------------------------------
 function quest_engine.init()
 
+	if quest_engine ~= nil and quest_engine.init_done then
+		return
+	end
+
 	quest_engine.definitions = {}
+	quest_engine.event_definitions = {}
 
 	quest_engine.quest_data = utils.read_world_data(quest_data_identifier)
 	
 	if quest_engine.quest_data == nil then
 		quest_engine.quest_data = {}
 	end
+	
+	quest_engine.init_done = true
 
 	-- TODO validate and cleanup remanent data once all quests have been loaded
 end
@@ -36,7 +43,7 @@ end
 -------------------------------------------------------------------------------
 -- @function [parent=#quest_engine] register_quest(quest_identifier, definition)
 --
---! @brief initialize quest engine
+--! @brief register a quest to quest engine
 --! @memberof quest_engine
 --
 --! @param quest_identifier unique name to use for this quest
@@ -55,6 +62,27 @@ function quest_engine.register_quest(quest_identifier, definition)
 	quest_engine.definitions[quest_identifier] = definition
 end
 
+-------------------------------------------------------------------------------
+-- @function [parent=#quest_engine] register_event(event_identifier, definition)
+--
+--! @brief initialize quest engine
+--! @memberof quest_engine
+--
+--! @param event_identifier unique name to use for this event
+--! @param definition definition of event
+--
+--! @return true/false if the definition was correct and the identifier unique
+-------------------------------------------------------------------------------
+function quest_engine.register_event(event_identifier, definition)
+	
+	if quest_engine.event_definitions[event_identifier] ~= nil then
+		return false
+	end
+	
+	-- TODO check event definition
+	
+	quest_engine.event_definitions[event_identifier] = definition
+end
 
 -------------------------------------------------------------------------------
 -- @function [parent=#quest_engine] active_quests(playername)
@@ -204,7 +232,7 @@ end
 
 
 -------------------------------------------------------------------------------
--- @function [parent=#quest_engine] quest_action(playername)
+-- @function [parent=#quest_engine] init_questdata(playername)
 --
 --! @brief initialize player specific quest data
 --! @memberof quest_engine
@@ -269,31 +297,16 @@ end
 -------------------------------------------------------------------------------
 function quest_engine.event_completed(eventdef, playerdata)
 
-	if eventdef.type == "event_harvest" then
+	if quest_engine.event_definitions[eventdef.type] ~= nil then
+	
 		local count = 0
 		for i, event in ipairs(playerdata.events) do
-			if event.type == "event_harvest" and event.parameter == eventdef.mobtype then
+		
+			if event.type == eventdef.type and 
+				quest_engine.event_definitions[eventdef.type].cbf(eventdef, event.parameter) then
 				count = count + 1
 			end
-		end
-		
-		if count >= eventdef.count then
-			return true
-		end
-		
-		return false
-	end
 
-	if eventdef.type == "event_cought" then
-		local count = 0
-		
-		for i, event in ipairs(playerdata.events) do
-			if event.type == "event_cought" and 
-				(event.mob == nil or event.mob == event.parameter.mob) and
-				(event.tool == nil or event.name == event.parameter.tool) and 
-				(event.result == nil or event.result == event.parameter.tool) then
-				count = count + 1
-			end
 		end
 		
 		if count >= eventdef.count then
@@ -301,6 +314,7 @@ function quest_engine.event_completed(eventdef, playerdata)
 		end
 		
 		return false
+		
 	end
 
 	quest_engine.dbg_lvl3("quest_engine: event_complete unknown eventtype \"" .. eventdef.type .. "\"")

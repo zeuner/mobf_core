@@ -1,0 +1,14 @@
+
+register_quest(quest_identifier, definition)
+
+active_quests(playername)
+
+get_quest_state(quest_identifier, playername)
+
+event(entity, player, eventtype, parameters)
+
+
+Quest definition:
+
+
+Event definition:
