@@ -118,6 +118,38 @@ barn.is_food = function (name)
 end
 
 ------------------------------------------------------------------------------
+-- @function [parent=#barn] free_pos_around(pos)
+--
+--! @brief get a free pos around pos
+--! @memberof barn
+--! @public
+--
+--! @param pos position to look for free pos around
+--
+--! @return position or nil
+-------------------------------------------------------------------------------
+barn.free_pos_around = function(pos)
+	for xdelta = -1, 1, 1 do
+	for zdelta = -1, 1, 1 do
+		local new_pos = {
+				x=pos.x + xdelta,
+				y=pos.y,
+				z=pos.z + zdelta}
+				
+		local objectcount = #minetest.get_objects_inside_radius( new_pos ,1)
+		print("Objectcount at pos " .. printpos(new_pos) .. " is " .. objectcount)
+		if not objectcount or objectcount <= 0 then
+			print("position found")
+
+			return new_pos
+		end
+	end
+	end
+
+	return nil
+end
+
+------------------------------------------------------------------------------
 -- @function [parent=#barn] breed(breedpairs, self, now)
 --
 --! @brief make mobs breed
@@ -182,7 +214,16 @@ barn.breed = function(breedpairs,self,now)
 								z = pos1.z + (pos2.z - pos1.z) /2,
 							}
 
-		--TODO check position by now this is done by spawn algorithm only
+		-- check position by now this is done by spawn algorithm only
+		
+		if #minetest.get_objects_inside_radius(pos_to_breed,1) > 0 then
+		
+			pos_to_breed = barn.free_pos_around(pos_to_breed)
+		end
+		
+		if pos_to_breed == nil then
+			return false
+		end
 
 		local result = breedpairs[math.random(3,4)]
 
