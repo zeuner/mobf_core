@@ -499,7 +499,7 @@ function mobf_debug.rightclick_callback(entity,player)
 		end
 	end
 	
-	if entity.dynamic_data.movement.follow_stuck_counter ~= nil then
+	if entity.dynamic_data.movement and entity.dynamic_data.movement.follow_stuck_counter ~= nil then
 		print("MOBF: Follow movgen stuck counter: " .. entity.dynamic_data.movement.follow_stuck_counter)
 	end
 
