@@ -34,6 +34,46 @@ function quest_engine.init()
 		quest_engine.quest_data = {}
 	end
 	
+	quest_engine.register_event("event_craft", 
+		{
+			cbf = function(eventdef, parameter)
+				if eventdef.item == parameter.item and
+					parameter.count > 0 then
+					return true
+				end
+			
+			return false
+		end
+		})
+	
+	local craft_event_handler = function(itemstack, player, old_craft_grid, craft_inv)
+		quest_engine.event(nil, player, "event_craft",
+			{ item = itemstack:get_name(), count=itemstack:get_count() } )
+	end
+	
+	minetest.register_on_craft(craft_event_handler)
+	
+	quest_engine.register_event("event_eat", 
+		{
+			cbf = function(eventdef, parameter)
+				if eventdef.item == parameter.item and
+					parameter.count > 0 and 
+					eventdef.heal ~= nil and eventdef.heal <= parameter.heal then
+					return true
+				end
+			
+			return false
+		end
+		})
+	
+	local eat_event_handler = function(hp_change, replace_with_item, itemstack, user, pointed_thing)
+		quest_engine.event(nil, user, "event_eat",
+			{ item = itemstack:get_name(), count=itemstack:get_count(), heal=hp_change } )
+	end
+	
+	minetest.register_on_item_eat(eat_event_handler)
+	
+	
 	quest_engine.init_done = true
 
 	-- TODO validate and cleanup remanent data once all quests have been loaded

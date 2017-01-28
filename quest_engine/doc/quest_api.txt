@@ -8,7 +8,71 @@ get_quest_state(quest_identifier, playername)
 event(entity, player, eventtype, parameters)
 
 
-Quest definition:
+Builtin events:
 
+	"event_craft" -- called whenever player crafts something
+		{ type="event_craft", item="default:stone_axe", count=1 }
+	"event_eat"   -- called whenever player eats something
+		{ type="event_eat", item="default:apple", count=1, heal=1 }
+
+
+Quest definition:
+{
+	quests_required = { "quest1", "quest2" }, -- list of quest id's to be completed for this quest to be available
+	repeatable = false,                       -- quest can be repeated
+	title= "Some fancy title",                -- title of quest to be shown in questlog
+	
+	-- init state is mandatory any other state is optional
+	init_state = {
+		-- text to be shown for this state
+		text = "some long long description shown by questgiver for this state",
+		
+		-- action button 1 in this state
+		action1 = {
+		
+			-- custom function called to check if this action is available
+			-- IMPORTANT: overrides events_required table so never set both!
+			action_available_fct=function(entity,player) end
+		
+			-- list of events for this action to be available
+			events_required = {
+				-- event definition1
+				{ type="event_breed", count=3 },
+				
+				-- event definition2
+				{ type="event_crafted", count=10 }
+			},
+			
+			-- follow up state if this action is taken 
+			-- or "quest_completed" if this is the last state
+			next_state="quest_completed",
+			
+			-- message to be shown on button
+			msg="Yes 3 little chicks grew up."
+			
+			-- a text used with printf replacing  the %'s by count/total of completed event1/event2/event3 ...
+			-- there should be only one action with progress set
+			progress = "Some text showing progress ov event1 %d  event2 %d",
+			},
+			
+		-- description of second action to be done (optional)
+		action2 = {
+			-- see action one
+		},
+		
+		-- description of third action to be done (optional)
+		action3 = {
+			-- see action one
+		}
+	}
+
+	-- a second state (optional)
+	-- Note: name of state is not relevant it's exactly what you set as "next_state" in
+	--       the action definitions
+	-- IMPORTANT: never use "quest_complete" as statename as it's used to indicate quest complete!
+	state_2 = {
+		-- same as init_state!
+	}
+}
 
 Event definition:
