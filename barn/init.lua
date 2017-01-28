@@ -24,22 +24,26 @@ else
 end
 
 minetest.log("action","MOD: barn mod loading ...")
-local version = "0.0.14"
 
+-- barn class
+local barn = {}
+local version = "0.1.0"
 local modpath = minetest.get_modpath("barn")
 
-barn_breedpairs_big = {
+barn.breedpairs = {
 	{ "animal_sheep:sheep","animal_sheep:sheep","animal_sheep:lamb","animal_sheep:lamb"},
 	{ "animal_cow:cow","animal_cow:steer","animal_cow:baby_calf_m","animal_cow:baby_calf_f"},
 	}
 
-barn_breedpairs_small = {
+barn.breedpairs_small = {
 	{ "animal_chicken:chicken","animal_chicken:rooster","animal_chicken:chick_m","animal_chicken:chick_f"},
 }
 
---include debug trace functions
+--include barn models
 dofile (modpath .. "/model.lua")
 
+
+-- register craftrecieps for barns
 minetest.register_craftitem("barn:barn_empty", {
 			description = S("Barn to breed animals"),
 			image = minetest.inventorycube("barn_3d_empty_top.png","barn_3d_empty_side.png","barn_3d_empty_side.png"),
@@ -88,7 +92,19 @@ minetest.register_craft({
 	}
 })
 
-function is_food(name)
+
+------------------------------------------------------------------------------
+-- @function [parent=#barn] is_food(name)
+--
+--! @brief check if something is considered to be food
+--! @memberof barn
+--! @public
+--
+--! @param name name of thing to be beckecked
+--! @param self the barn
+--! @param now current time
+-------------------------------------------------------------------------------
+barn.is_food = function (name)
 
 	if name == "default:leaves" then
 		return true
@@ -101,8 +117,18 @@ function is_food(name)
 	return false
 end
 
-
-function breed(breedpairs,self,now)
+------------------------------------------------------------------------------
+-- @function [parent=#barn] breed(breedpairs, self, now)
+--
+--! @brief make mobs breed
+--! @memberof barn
+--! @public
+--
+--! @param breedpairs breed definition
+--! @param self the barn
+--! @param now current time
+-------------------------------------------------------------------------------
+barn.breed = function(breedpairs,self,now)
 
 	local pos = self.object:getpos()
 	local objectlist = minetest.get_objects_inside_radius(pos,4)
@@ -174,14 +200,25 @@ function breed(breedpairs,self,now)
 		elseif le_animal2.dynamic_data.spawning.spawner ~= nil then
 			breeded_lua.dynamic_data.spawning.spawner = le_animal2.dynamic_data.spawning.spawner
 		end
-
+		
+		local player = minetest.get_player_by_name(breeded_lua.dynamic_data.spawning.spawner)
+		
+		if player ~= nil then
+			quest_engine.event(nil, player, "event_breed", 
+				{ 
+					breeded = result,
+					mobtype1 = le_animal1.data.modname .. ":" .. le_animal1.data.name,
+					mobtype2 = le_animal2.data.modname .. ":" .. le_animal2.data.name,
+				})
+		end
+	
 		return true
 	end
 
 	return false
 end
 
---Entity
+-- register barn entity for breeding
 minetest.register_entity(":barn:barn_ent",
 	{
 		physical 		= true,
@@ -196,14 +233,12 @@ minetest.register_entity(":barn:barn_ent",
 
 			if now ~= self.last_check_time then
 
-
-
-				local select = math.random(1,#barn_breedpairs_big)
-				local breedpairs = barn_breedpairs_big[select]
+				local select = math.random(1,#barn.breedpairs)
+				local breedpairs = barn.breedpairs[select]
 				--print("Selected " ..  select .. " --> " ..dump(breedpairs))
 
 
-				if breed(breedpairs,self,now) then
+				if barn.breed(breedpairs,self,now) then
 					local pos = self.object:getpos()
 					--remove barn and add empty one
 					self.object:remove()
@@ -239,6 +274,7 @@ minetest.register_entity(":barn:barn_ent",
 		last_check_time = -1,
 	})
 
+-- register barn entity for placing barn
 minetest.register_entity(":barn:barn_empty_ent",
 	{
 		physical 		= true,
@@ -261,7 +297,7 @@ minetest.register_entity(":barn:barn_empty_ent",
 			--if player is wearing food replace by full barn
 			local tool = player:get_wielded_item()
 
-			if is_food(tool:get_name()) then
+			if barn.is_food(tool:get_name()) then
 				local time_of_last_breed = self.last_breed_time
 				local pos = self.object:getpos()
 
@@ -288,6 +324,8 @@ minetest.register_entity(":barn:barn_empty_ent",
 
 		})
 
+
+-- register small barn for breeding
 minetest.register_entity(":barn:barn_small_ent",
 	{
 		physical 		= true,
@@ -304,12 +342,12 @@ minetest.register_entity(":barn:barn_small_ent",
 
 
 
-				local select = math.random(1,#barn_breedpairs_small)
-				local breedpairs = barn_breedpairs_small[select]
+				local select = math.random(1,#barn.breedpairs_small)
+				local breedpairs = barn.breedpairs_small[select]
 				--print("Selected " ..  select .. " --> " ..dump(breedpairs))
 
 
-				if breed(breedpairs,self,now) then
+				if barn.breed(breedpairs,self,now) then
 					local pos = self.object:getpos()
 					--remove barn and add empty one
 					self.object:remove()
@@ -345,6 +383,8 @@ minetest.register_entity(":barn:barn_small_ent",
 		last_check_time = -1,
 	})
 
+
+--register small barn entity to place a small barn
 minetest.register_entity(":barn:barn_small_empty_ent",
 	{
 		physical 		= true,
@@ -359,7 +399,7 @@ minetest.register_entity(":barn:barn_small_empty_ent",
 			--if player is wearing food replace by full barn
 			local tool = player:get_wielded_item()
 
-			if is_food(tool:get_name()) then
+			if barn.is_food(tool:get_name()) then
 				local time_of_last_breed = self.last_breed_time
 				local pos = self.object:getpos()
 
@@ -385,5 +425,75 @@ minetest.register_entity(":barn:barn_small_empty_ent",
 		end,
 
 		})
+
+-- initialize quest support for barn
+quest_engine.init()
+
+quest_engine.register_event(
+	"event_breed",
+	{
+		cbf = function(eventdef, parameter)
+			if (eventdef.mobtype1 == nil or parameter.mobtype1 == eventdef.mobtype1 ) and
+				(eventdef.mobtype2 == nil or parameter.mobtype2 == eventdef.mobtype2 )  or 
+				(eventdef.mobtype1 == nil or parameter.mobtype2 == eventdef.mobtype1 ) and
+				(eventdef.mobtype2 == nil or parameter.mobtype1 == eventdef.mobtype2 ) and
+				(eventdef.breeded == nil or parameter.breeded == eventdef.breeded) then
+				return true
+			end
+			
+			return false
+		end
+	}
+)
+
+------------------------------------------------------------------------------
+-- @function register_breed_definition(name)
+--
+--! @brief official api for registering breed from mobs
+--
+--! @param breeddef the definition to use for breeding
+-------------------------------------------------------------------------------
+function register_breed_definition(breeddef)
+
+	local toadd = {}
+	
+	if breeddef.mob1 ~= nil then 
+		toadd.mobtype1 = breeddef.mob1
+	end
+		
+	if breeddef.mob2 ~= nil then
+		toadd.mobtype2 = breeddef.mob2
+	end
+	
+	if breeddef.results ~= nil then
+		toadd.results = breeddef.results
+	end
+	
+	
+	if toadd.mobtype2 == nil then
+		toadd.mobtype2 = toadd.mobtype1
+	end
+	
+	toadd.food = breeddef.food
+	
+	if toadd.mobtype1 == nil or 
+		toadd.mobtype2 == nil or
+		toadd.results == nil then
+		return false
+	end
+
+	if breeddef.barn == "smallbarn" then
+		table.insert(barn.breedpairs_small,breeddef)
+		return true
+		
+	elseif breeddef.barn == "barn" then
+		table.insert(barn.breedpairs,breeddef)
+		return true
+		
+	else
+		return false
+	end
+	-- TODO
+end
 
 minetest.log("action","MOD: barn mod version " .. version .. " loaded")
