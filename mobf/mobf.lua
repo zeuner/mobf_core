@@ -1393,7 +1393,7 @@ function mobf.call_on_corner_positions(entity, pos, check_center, fct, data)
 	end
 
 	for i=1,#cornerpositions,1 do
-		if lastpos and not not vector.equals(lastpos,cornerpositions[i]) then
+		if not lastpos or not vector.equals(lastpos,cornerpositions[i]) then
 			local continue, rv2 = fct(entity, cornerpositions[i], data)
 			
 			if rv2 ~= nil then

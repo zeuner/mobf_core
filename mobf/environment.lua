@@ -699,6 +699,7 @@ function environment.pos_quality(pos,entity)
 							state.level_quality
 					end
 				}
+		
 
 	local checkfct = 
 		function(entity, pos, data)
@@ -734,7 +735,6 @@ function environment.pos_quality(pos,entity)
 
 	--check height level for flying mobs
 	if entity.data.movement.canfly == true then
-	
 		local checkfct = 
 			function(entity, pos, data)
 			
@@ -765,7 +765,7 @@ function environment.pos_quality(pos,entity)
 			
 				local ground_distance =
 					mobf_ground_distance(pos, entity.environment.media)
-		
+				
 				--first check if on surface or not
 				if ground_distance <= data.max_ground_distance then
 					local is_center = false
@@ -921,36 +921,35 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 
 	local checkfct = function(entity, pos, data)
 	
-		local node_to_check = minetest.get_node(cornerpositions[i])
+		local node_to_check = minetest.get_node(pos)
 
 		if node_to_check == nil then
 			mobf_bug_warning(LOGLEVEL_ERROR,"MOBF: BUG!!!! checking position with invalid node")
 			return false, "invalid"
 		end
 
-		if not environment.is_media_element(node_to_check.name,entity.environment.media) == true then
-			dbg_mobf.environment_lvl3("MOBF: " .. i .. ": " ..
-				printpos(cornerpositions[i]) .. " -- " .. printpos(pos) ..
-				" not within environment")
-
-			if vector.equals(pos,cornerpositions[i]) then
-				if core.registered_nodes[node_to_check.name].liquidtype == "source" or
-					core.registered_nodes[node_to_check.name].liquidtype == "flowing" then
-					return false, "in_water"
-				end
-
-				if node_to_check.name == "air" then
-					return false, "in_air"
-				end
-
-			else
-				return true, "collision"
-			end
-		end
-
 		data.min_ground_distance =
 				MIN(min_ground_distance,
-					mobf_ground_distance(cornerpositions[i],entity.environment.media))
+					mobf_ground_distance(pos,entity.environment.media))
+
+		if not environment.is_media_element(node_to_check.name,entity.environment.media) == true then
+			dbg_mobf.environment_lvl3("MOBF: "..
+				printpos(pos) .. " -- " .. printpos(pos) ..
+				" not within environment")
+
+
+			if core.registered_nodes[node_to_check.name].liquidtype == "source" or
+				core.registered_nodes[node_to_check.name].liquidtype == "flowing" then
+				return false, "in_water"
+			end
+
+			if node_to_check.name == "air" then
+				return false, "in_air"
+			end
+
+			return true, "collision"
+		end
+
 		return true, nil
 	end
 	
