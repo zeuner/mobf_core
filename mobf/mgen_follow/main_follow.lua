@@ -749,9 +749,7 @@ end
 --! @param max_distance maximum distance to target to be tried to reach
 --! @param reached_callback function to call if target is reached, or some permanent failure happened
 -------------------------------------------------------------------------------
-function mgen_follow.set_target(entity,target, follow_speedup, max_distance, reached_callback, stop)
-	dbg_mobf.fmovement_lvl1(
-		"MOBF: mgen_follow, setting target to: " .. printpos(target))
+function mgen_follow.set_target(entity, target, follow_speedup, max_distance, reached_callback, stop)
 	entity.dynamic_data.movement.target = target
 	entity.dynamic_data.movement.max_distance = max_distance
 	entity.dynamic_data.movement.follow_error_count = 0
