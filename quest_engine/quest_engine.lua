@@ -361,6 +361,42 @@ function quest_engine.event_completed(eventdef, playerdata)
 	return false
 end
 
+-------------------------------------------------------------------------------
+-- @function [parent=#quest_engine] event_relevant(eventtype, questaction, playername, printmsg)
+--
+--! @brief check if event is relevant for state
+--! @memberof quest_engine
+--
+--! @param eventtype type of event to check
+--! @param questaction action to check
+--! @param playername name of player
+--! @param printmsg send chat message
+--
+--! @return true/false
+-------------------------------------------------------------------------------
+function quest_engine.event_relevant(eventtype, questaction, playername, printmsg)
+
+	if questaction == nil then
+		return false
+	end
+
+	if questaction.events_required then
+		for i=1, #questaction.events_required, 1 do
+			if questaction.events_required[i].type == eventtype then
+			
+				if printmsg and questaction.events_required[i].msg ~= nil then
+					minetest.chat_send_player(playername, questaction.events_required[i].msg)
+				end
+				return true
+			end
+		end
+		
+		return false
+	else
+		return true
+	end
+end
+
 
 -------------------------------------------------------------------------------
 -- @function [parent=#quest_engine] event(entity, player, eventtype, parameters)
@@ -389,17 +425,25 @@ function quest_engine.event(entity, player, eventtype, parameter)
 	for i, quest in ipairs(questlist) do
 		local questdata = quest_engine.get_quest_state({ quest }, playername)
 		
-		if questdata.playerdata.events == nil then
-			questdata.playerdata.events = {}
-		end
+		-- TODO check if event is relevant for state
+		local queststate = questdata.questdef[questdata.playerdata.current_state]
 		
-		if parameter == nil then
-			parameter = {}
-		end
+		if quest_engine.event_relevant(eventtype, queststate.action1, playername, true) or
+			not quest_engine.event_relevant(eventtype, queststate.action2, playername, true) or
+			not quest_engine.event_relevant(eventtype, queststate.action3, playername, true) then
 		
-		table.insert(questdata.playerdata.events,
-			{ type=eventtype, parameter=parameter}
-			)
+			if questdata.playerdata.events == nil then
+				questdata.playerdata.events = {}
+			end
+		
+			if parameter == nil then
+				parameter = {}
+			end
+		
+			table.insert(questdata.playerdata.events,
+				{ type=eventtype, parameter=parameter}
+				)
+		end
 		
 	end
 	

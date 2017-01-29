@@ -37,7 +37,7 @@ Quest definition:
 			-- list of events for this action to be available
 			events_required = {
 				-- event definition1
-				{ type="event_breed", count=3 },
+				{ type="event_breed", count=3 , msg="message shown on event happening"},
 				
 				-- event definition2
 				{ type="event_crafted", count=10 }
