@@ -244,33 +244,33 @@ function mobf_quest_inventory.create_formspec(player, entity, playername, questd
 		retval = retval .. "button_exit[0.2,6;7.75,0;btn_action3;" .. S(queststate.action3.msg) .. "]"
 	end
 	
-	if queststate.reciep ~= nil then
-		if queststate.reciep[1][1] ~= "" then
-			retval = retval .. "item_image[5.25,0.75;0.75,0.75;" .. queststate.reciep[1][1] .. "]"
+	if queststate.recipe ~= nil then
+		if queststate.recipe[1][1] ~= "" then
+			retval = retval .. "item_image[5.25,0.75;0.75,0.75;" .. queststate.recipe[1][1] .. "]"
 		end
-		if queststate.reciep[1][2] ~= "" then
-			retval = retval .. "item_image[6,0.75;0.75,0.75;" .. queststate.reciep[1][2] .. "]"
+		if queststate.recipe[1][2] ~= "" then
+			retval = retval .. "item_image[6,0.75;0.75,0.75;" .. queststate.recipe[1][2] .. "]"
 		end
-		if queststate.reciep[1][3] ~= "" then
-			retval = retval .. "item_image[6.75,0.75;0.75,0.75;" .. queststate.reciep[1][3] .. "]"
+		if queststate.recipe[1][3] ~= "" then
+			retval = retval .. "item_image[6.75,0.75;0.75,0.75;" .. queststate.recipe[1][3] .. "]"
 		end
-		if queststate.reciep[2][1] ~= "" then
-			retval = retval .. "item_image[5.25,1.5;0.75,0.75;" .. queststate.reciep[2][1] .. "]"
+		if queststate.recipe[2][1] ~= "" then
+			retval = retval .. "item_image[5.25,1.5;0.75,0.75;" .. queststate.recipe[2][1] .. "]"
 		end
-		if queststate.reciep[2][2] ~= "" then
-			retval = retval .. "item_image[6,1.5;0.75,0.75;" .. queststate.reciep[2][2] .. "]"
+		if queststate.recipe[2][2] ~= "" then
+			retval = retval .. "item_image[6,1.5;0.75,0.75;" .. queststate.recipe[2][2] .. "]"
 		end
-		if queststate.reciep[2][3] ~= "" then
-			retval = retval .. "item_image[6.75,1.5;0.75,0.75;" .. queststate.reciep[2][3] .. "]"
+		if queststate.recipe[2][3] ~= "" then
+			retval = retval .. "item_image[6.75,1.5;0.75,0.75;" .. queststate.recipe[2][3] .. "]"
 		end
-		if queststate.reciep[3][1] ~= "" then
-			retval = retval .. "item_image[5.25,2.25;0.75,0.75;" .. queststate.reciep[3][1] .. "]"
+		if queststate.recipe[3][1] ~= "" then
+			retval = retval .. "item_image[5.25,2.25;0.75,0.75;" .. queststate.recipe[3][1] .. "]"
 		end
-		if queststate.reciep[3][2] ~= "" then
-			retval = retval .. "item_image[6,2.25;0.75,0.75;" .. queststate.reciep[3][2] .. "]"
+		if queststate.recipe[3][2] ~= "" then
+			retval = retval .. "item_image[6,2.25;0.75,0.75;" .. queststate.recipe[3][2] .. "]"
 		end
-		if queststate.reciep[3][3] ~= "" then
-			retval = retval .. "item_image[6.75,2.25;0.75,0.75;" .. queststate.reciep[3][3] .. "]"
+		if queststate.recipe[3][3] ~= "" then
+			retval = retval .. "item_image[6.75,2.25;0.75,0.75;" .. queststate.recipe[3][3] .. "]"
 		end
 	end
 	
