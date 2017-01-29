@@ -39,7 +39,7 @@ function mobf_lifebar.init()
 			textures        = { "mobf_lb_64.png" },
 			visual_size     = {x=1,y=0.2},
 			groups = { immortal=1, },
-			is_visible = true,
+			is_visible = false,
 			initial_sprite_basepos = {x=0, y=0},
 
 			lifetime = 0,
@@ -129,13 +129,30 @@ end
 -------------------------------------------------------------------------------
 function mobf_lifebar.set(lifebar,value)
 	if lifebar ~= nil then
-		if value < 0 or value > 100 then
+		if value < 0 or value > 1 then
 			dbg_mobf.lifebar_lvl3("MOBF: invalid modifier vaule=" .. value)
 			return
 		end
 		local modifiername = mobf_lifebar.get_imagename(value)
 		dbg_mobf.lifebar_lvl2("MOBF: got modifier " .. modifiername .. " for value " .. value)
+		
+		
 		lifebar:settexturemod(modifiername)
+	
+		-- hide full healthbars
+		local new_props = lifebar:get_properties()
+		
+		if value >= 1 then
+			new_props.is_visible = false
+		
+			lifebar:set_properties(new_props)
+		else
+			new_props .is_visible = true
+		
+			lifebar:set_properties(new_props)
+		end
+		
+		
 	end
 end
 
