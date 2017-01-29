@@ -960,8 +960,10 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 	
 	local retval = mobf.call_on_corner_positions(entity, pos, false, checkfct, data)
 
-	if retval == nil then
+	if retval == nil or #retval < 1 then
 		retval = "temp_ok"
+	else
+		retval = retval[1].result
 	end
 
 	if retval == "temp_ok" then
@@ -1034,6 +1036,8 @@ function environment.pos_is_ok(pos,entity,dont_do_jumpcheck)
 			end
 		end
 	end
+	
+	mobf_assert_backtrace(retval ~= nil)
 
 	return retval
 end
