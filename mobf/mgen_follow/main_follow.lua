@@ -185,9 +185,8 @@ function mgen_follow.check_target(entity, basepos, targetpos,
 	end
 	
 	--check if mob needs to move towards target
-	dbg_mobf.fmovement_lvl3("MOBF: max distance is set to : "
+	dbg_mobf.fmovement_lvl3("MOBF:     mgen_follow.check_target: max distance is set to : "
 							.. max_distance .. " dist: " .. distance)
-									
 	if distance > max_distance then
 	
 		if entity.dynamic_data.movement.follow_last_pos ~= nil then
@@ -291,7 +290,7 @@ function mgen_follow.check_target(entity, basepos, targetpos,
 						entity.environment.media,
 						entity.data.movement.canfly)
 						
-		local current_accel = entity.object:getacceleration()
+		local current_accel = mobf_physics.getacceleration(entity)
 						
 		if entity.dynamic_data.movement.was_moving_last_step == true or
 			current_accel.Y ~= yaccel then
@@ -302,8 +301,6 @@ function mgen_follow.check_target(entity, basepos, targetpos,
 			
 			mgen_follow.clear_acceleration(entity, entity.dynamic_data.movement.stop_at_target)
 			
-			entity.dynamic_data.movement.target = nil
-			entity.dynamic_data.movement.stop_at_target = nil
 			entity.dynamic_data.movement.last_next_to_target = now
 			
 			mgen_follow.update_animation(entity, "ntt")
@@ -316,52 +313,19 @@ function mgen_follow.check_target(entity, basepos, targetpos,
 	end
 	
 end
+
 -------------------------------------------------------------------------------
--- name: callback(entity,now)
+-- name: env_check(entity)
 --
---! @brief main callback to make a mob follow its target
+--! @brief check and fix mob environment
 --! @memberof mgen_follow
 --
 --! @param entity mob to generate movement for
---! @param now current time
 -------------------------------------------------------------------------------
-function mgen_follow.callback(entity,now, dstep)
-
-	dbg_mobf.fmovement_lvl3("MOBF: Follow mgen callback called")
-
-	if entity == nil then
-		mobf_bug_warning(LOGLEVEL_ERROR,"MOBF BUG!!!: called movement gen without entity!")
-		return
-	end
-
-	if entity.dynamic_data == nil or
-		entity.dynamic_data.movement == nil then
-		mobf_bug_warning(LOGLEVEL_ERROR,"MOBF BUG!!!: >" ..entity.data.name .. "< removed=" .. dump(entity.removed) .. " entity=" .. tostring(entity) .. " probab movement callback")
-		return
-	end
-
-	local follow_speedup =  {x=10,y=2,z=10 }
-
-	if entity.data.movement.follow_speedup ~= nil then
-		if type(entity.data.movement.follow_speedup) == "table" then
-			follow_speedup = entity.data.movement.follow_speedup
-		else
-			follow_speedup.x= entity.data.movement.follow_speedup
-			follow_speedup.z= entity.data.movement.follow_speedup
-		end
-	end
-	
-	--if speedup is disabled reset
-	if not entity.dynamic_data.movement.follow_speedup then
-		follow_speedup = { x=1, y=1, z=1}
-	end
-
-	--check max speed limit
-	mgen_follow.checkspeed(entity)
+function mgen_follow.env_check(entity)
 
 
-	--check environment
-	local basepos  = entity.getbasepos(entity)
+	local basepos  = entity:getbasepos()
 	local pos_quality = environment.pos_quality(basepos,entity)
 
 	if environment.evaluate_state(pos_quality, LT_GOOD_POS) or
@@ -377,8 +341,8 @@ function mgen_follow.callback(entity,now, dstep)
 
 	if pos_quality.media_quality == MQ_IN_AIR or                  -- wrong media
 		pos_quality.media_quality == MQ_IN_WATER or               -- wrong media
-		pos_quality.geometry_quality == GQ_NONE or               -- no ground contact (TODO this was drop above water before)
-		pos_quality.surface_quality_center == SQ_WATER then         -- above water
+		pos_quality.geometry_quality == GQ_NONE or                -- no ground contact (TODO this was drop above water before)
+		pos_quality.surface_quality_center == SQ_WATER then       -- above water
 
 
 		if entity.dynamic_data.movement.invalid_env_count == nil then
@@ -429,7 +393,7 @@ function mgen_follow.callback(entity,now, dstep)
 		end
 		
 		if not mgen_follow.update_and_check_error_count(entity) then
-			return
+			return false
 		end
 	else
 		entity.dynamic_data.movement.invalid_env_count = 0
@@ -454,7 +418,106 @@ function mgen_follow.callback(entity,now, dstep)
 		end
 
 		mobf_physics.setacceleration(entity,current_accel)
+		return false
+	end
+
+	return true
+end
+
+-------------------------------------------------------------------------------
+-- name: get_target_pos(entity)
+--
+--! @brief get position of target
+--! @memberof mgen_follow
+--
+--! @param entity mob to generate movement for
+-------------------------------------------------------------------------------
+function mgen_follow.get_target_pos(entity)
+	local basepos  = entity:getbasepos()
+	local targetpos = nil
+
+	if entity.dynamic_data.movement.target ~= nil then
+		dbg_mobf.fmovement_lvl3("MOBF:     mgen_follow.get_target_pos: have moving target")
+
+		if not mobf_is_pos(entity.dynamic_data.movement.target) then
+			targetpos = entity.dynamic_data.movement.target:getpos()
+		else
+			targetpos = entity.dynamic_data.movement.target
+		end
+	end
+
+	if targetpos == nil and
+		entity.dynamic_data.movement.guardspawnpoint == true then
+		dbg_mobf.fmovement_lvl3("MOBF:     mgen_follow.get_target_pos: non target selected")
+		targetpos = entity.dynamic_data.spawning.spawnpoint
+	end
+
+	if targetpos == nil then
+		mobf_bug_warning(LOGLEVEL_ERROR,"MOBF: " .. entity.data.name
+		.. " don't have targetpos "
+		.. "SP: " .. dump(entity.dynamic_data.spawning.spawnpoint)
+		.. " TGT: " .. dump(entity.dynamic_data.movement.target))
 		return
+	end
+	
+	if mobf_line_of_sight({x=basepos.x,y=basepos.y+1,z=basepos.z},
+					 {x=targetpos.x,y=targetpos.y+1,z=targetpos.z})  == false then
+		dbg_mobf.fmovement_lvl3("MOBF:     mgen_follow.get_target_pos: no line of sight (Ignored by now)")
+		--TODO teleport support?
+		--TODO other ways to handle this?
+		--return
+	end
+
+	return targetpos
+end
+
+-------------------------------------------------------------------------------
+-- name: callback(entity,now)
+--
+--! @brief main callback to make a mob follow its target
+--! @memberof mgen_follow
+--
+--! @param entity mob to generate movement for
+--! @param now current time
+-------------------------------------------------------------------------------
+function mgen_follow.callback(entity,now, dstep)
+
+	dbg_mobf.fmovement_lvl3("MOBF: Follow mgen callback called")
+
+	if entity == nil then
+		mobf_bug_warning(LOGLEVEL_ERROR,"MOBF BUG!!!: called movement gen without entity!")
+		return
+	end
+
+	if entity.dynamic_data == nil or
+		entity.dynamic_data.movement == nil then
+		mobf_bug_warning(LOGLEVEL_ERROR,"MOBF BUG!!!: >" ..entity.data.name .. "< removed=" .. dump(entity.removed) .. " entity=" .. tostring(entity) .. " probab movement callback")
+		return
+	end
+
+
+	local follow_speedup =  {x=10,y=2,z=10 }
+
+	if entity.data.movement.follow_speedup ~= nil then
+		if type(entity.data.movement.follow_speedup) == "table" then
+			follow_speedup = entity.data.movement.follow_speedup
+		else
+			follow_speedup.x= entity.data.movement.follow_speedup
+			follow_speedup.z= entity.data.movement.follow_speedup
+		end
+	end
+	
+	--if speedup is disabled reset
+	if not entity.dynamic_data.movement.follow_speedup then
+		follow_speedup = { x=1, y=1, z=1}
+	end
+
+	-- check max speed limit
+	mgen_follow.checkspeed(entity)
+
+	-- check environment
+	if not mgen_follow.env_check(entity) then
+		dbg_mobf.fmovement_lvl2("MOBF:   env_check tells we're done")
 	end
 
 	--fixup height fixup
@@ -465,50 +528,21 @@ function mgen_follow.callback(entity,now, dstep)
 		end
 	end
 
+	-- check if there's a target
 	if entity.dynamic_data.movement.target ~= nil or
 		entity.dynamic_data.movement.guardspawnpoint then
 		
 		dbg_mobf.fmovement_lvl3("MOBF:   Target available")
-		--calculate distance to target
-		local targetpos = nil
-
-		if entity.dynamic_data.movement.target ~= nil then
-			dbg_mobf.fmovement_lvl3("MOBF:   have moving target")
-
-			if not mobf_is_pos(entity.dynamic_data.movement.target) then
-				dbg_mobf.fmovement_lvl3("MOBF:   " .. dump(entity.dynamic_data.movement.target))
-				targetpos = entity.dynamic_data.movement.target:getpos()
-			else
-				targetpos = entity.dynamic_data.movement.target
-			end
-		end
-
-		if targetpos == nil and
-			entity.dynamic_data.movement.guardspawnpoint == true then
-			dbg_mobf.fmovement_lvl3("MOBF:   non target selected")
-			targetpos = entity.dynamic_data.spawning.spawnpoint
-		end
-
-		if targetpos == nil then
-			mobf_bug_warning(LOGLEVEL_ERROR,"MOBF: " .. entity.data.name
-			.. " don't have targetpos "
-			.. "SP: " .. dump(entity.dynamic_data.spawning.spawnpoint)
-			.. " TGT: " .. dump(entity.dynamic_data.movement.target))
-			return
-		end
 		
-		if mobf_line_of_sight({x=basepos.x,y=basepos.y+1,z=basepos.z},
-						 {x=targetpos.x,y=targetpos.y+1,z=targetpos.z})  == false then
-			dbg_mobf.fmovement_lvl3("MOBF:   no line of sight")
-			--TODO teleport support?
-			--TODO other ways to handle this?
-			--return
-		end
+		--calculate distance to target
+		local targetpos = mgen_follow.get_target_pos(entity)
+		local basepos  = entity:getbasepos()
 
 		mgen_follow.check_target(entity, basepos, targetpos,
-			entity.dynamic_data.movement.max_distance or 1, now, follow_speedup, dstep)
+			entity.dynamic_data.movement.max_distance or 1.5, now, follow_speedup, dstep)
 
 	else
+		dbg_mobf.fmovement_lvl2("MOBF:   mgen_follow no target set?!")
 		--TODO evaluate if this is an error case
 	end
 end
@@ -760,11 +794,11 @@ function mgen_follow.set_target(entity, target, follow_speedup, max_distance, re
 		
 		if target ~= nil and details.reached_callback ~= nil then
 			entity.dynamic_data.movement.reached_callback = details.reached_callback
+		else
+			entity.dynamic_data.movement.reached_callback = nil
 		end
 		
-		if details.max_target_distance ~= nil then
-			entity.dynamic_data.movement.max_distance = details.max_target_distance
-		end
+		entity.dynamic_data.movement.max_distance = details.max_target_distance
 	
 -- legacy mode to be removed!
 	else
