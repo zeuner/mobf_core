@@ -321,11 +321,17 @@ end
 --! @memberof mgen_follow
 --
 --! @param entity mob to generate movement for
+--! @param movement_state all information present for current movement state
 -------------------------------------------------------------------------------
-function mgen_follow.env_check(entity)
+function mgen_follow.env_check(entity, movement_state)
 
-
-	local basepos  = entity:getbasepos()
+	if movement_state.basepos == nil then
+		movement_state.basepos = entity:getbasepos()
+	end
+	
+	
+	
+	local basepos  = movement_state.basepos
 	local pos_quality = environment.pos_quality(basepos,entity)
 
 	if environment.evaluate_state(pos_quality, LT_GOOD_POS) or
@@ -361,7 +367,8 @@ function mgen_follow.env_check(entity)
 			dbg_mobf.fmovement_lvl1("MOBF: followed to wrong place " .. pos_quality.tostring(pos_quality))
 			if entity.dynamic_data.movement.last_pos_in_env ~= nil then
 				entity.object:moveto(entity.dynamic_data.movement.last_pos_in_env)
-				basepos  = entity.getbasepos(entity)
+				basepos  = entity:getbasepos()
+				movement_state.basepos = basepos
 			else
 				local newpos = environment.get_suitable_pos_same_level(basepos,1,entity,true)
 
@@ -387,7 +394,8 @@ function mgen_follow.env_check(entity)
 				else
 					newpos.y = newpos.y - (entity.collisionbox[2] + 0.49)
 					entity.object:moveto(newpos)
-					basepos  = entity.getbasepos(entity)
+					basepos  = entity:getbasepos()
+					movement_state.basepos = basepos
 				end
 			end
 		end
@@ -418,6 +426,7 @@ function mgen_follow.env_check(entity)
 		end
 
 		mobf_physics.setacceleration(entity,current_accel)
+		movement_state.current_acceleration = current_accel
 		return false
 	end
 
@@ -429,6 +438,7 @@ end
 --
 --! @brief get position of target
 --! @memberof mgen_follow
+--! @private
 --
 --! @param entity mob to generate movement for
 -------------------------------------------------------------------------------
@@ -472,6 +482,36 @@ function mgen_follow.get_target_pos(entity)
 end
 
 -------------------------------------------------------------------------------
+-- name: calc_follow_speedup(entity,movement_state)
+--
+--! @brief calculate and set follow speedup to movement state
+--! @memberof mgen_follow
+--! @private
+--
+--! @param entity mob to generate movement for
+--! @param movement_state all information present for current movement state
+-------------------------------------------------------------------------------
+function mgen_follow.calc_follow_speedup(entity, movement_state)
+
+	movement_state.follow_speedup =  {x=10,y=2,z=10 }
+
+	if entity.data.movement.follow_speedup ~= nil then
+		if type(entity.data.movement.follow_speedup) == "table" then
+			movement_state.follow_speedup = entity.data.movement.follow_speedup
+		else
+			movement_state.follow_speedup.x= entity.data.movement.follow_speedup
+			movement_state.follow_speedup.z= entity.data.movement.follow_speedup
+		end
+	end
+	
+	--if speedup is disabled reset
+	if not entity.dynamic_data.movement.follow_speedup then
+		movement_state.follow_speedup = { x=1, y=1, z=1}
+	end
+
+end
+
+-------------------------------------------------------------------------------
 -- name: callback(entity,now)
 --
 --! @brief main callback to make a mob follow its target
@@ -494,37 +534,36 @@ function mgen_follow.callback(entity,now, dstep)
 		mobf_bug_warning(LOGLEVEL_ERROR,"MOBF BUG!!!: >" ..entity.data.name .. "< removed=" .. dump(entity.removed) .. " entity=" .. tostring(entity) .. " probab movement callback")
 		return
 	end
-
-
-	local follow_speedup =  {x=10,y=2,z=10 }
-
-	if entity.data.movement.follow_speedup ~= nil then
-		if type(entity.data.movement.follow_speedup) == "table" then
-			follow_speedup = entity.data.movement.follow_speedup
-		else
-			follow_speedup.x= entity.data.movement.follow_speedup
-			follow_speedup.z= entity.data.movement.follow_speedup
-		end
-	end
 	
-	--if speedup is disabled reset
-	if not entity.dynamic_data.movement.follow_speedup then
-		follow_speedup = { x=1, y=1, z=1}
-	end
+	local movement_state = {
+		now = now,
+		dstep = dstep
+	}
+
+	-- calculate follow_speedup
+	mgen_follow.calc_follow_speedup(entity, movement_state)
+	
 
 	-- check max speed limit
-	mgen_follow.checkspeed(entity)
+	if not mgen_follow.checkspeed(entity, movement_state) then
+		dbg_mobf.fmovement_lvl2("MOBF:   checkspeed fixed something")
+	end
 
 	-- check environment
-	if not mgen_follow.env_check(entity) then
+	if not mgen_follow.env_check(entity, movement_state) then
 		dbg_mobf.fmovement_lvl2("MOBF:   env_check tells we're done")
+		return
+	end
+	
+	if movement_state.current_acceleration == nil then
+		movement_state.current_acceleration = mobf_physics.getacceleration(entity)
 	end
 
 	--fixup height fixup
 	if entity.data.movement.canfly then
-		if current_accel.y ~= 0 then
-			current_accel.y = 0
-			mobf_physics.setacceleration(entity,current_accel)
+		if movement_state.current_acceleration.y ~= 0 then
+			movement_state.current_acceleration.y = 0
+			mobf_physics.setacceleration(entity, movement_state.current_acceleration)
 		end
 	end
 
@@ -536,10 +575,10 @@ function mgen_follow.callback(entity,now, dstep)
 		
 		--calculate distance to target
 		local targetpos = mgen_follow.get_target_pos(entity)
-		local basepos  = entity:getbasepos()
 
-		mgen_follow.check_target(entity, basepos, targetpos,
-			entity.dynamic_data.movement.max_distance or 1.5, now, follow_speedup, dstep)
+		mgen_follow.check_target(entity, movement_state.basepos, targetpos,
+			entity.dynamic_data.movement.max_distance or 1.5, now,
+			movement_state.follow_speedup, dstep)
 
 	else
 		dbg_mobf.fmovement_lvl2("MOBF:   mgen_follow no target set?!")
@@ -671,20 +710,21 @@ function mgen_follow.init_dynamic_data(entity,now)
 end
 
 -------------------------------------------------------------------------------
--- name: checkspeed(entity)
+-- name: checkspeed(entity, movement_state)
 --
 --! @brief check if mobs speed is within it's limits and correct if necessary
 --! @memberof mgen_follow
 --! @private
 --
---! @param entity mob to initialize dynamic data
+--! @param entity mob to check current speed for
+--! @param movement_state all information present for current movement state
 -------------------------------------------------------------------------------
-function mgen_follow.checkspeed(entity)
+function mgen_follow.checkspeed(entity, movement_state)
 
-	local current_velocity = mobf_physics.getvelocity(entity)
+	movement_state.current_velocity = mobf_physics.getvelocity(entity)
 
 	local xzspeed =
-		mobf_calc_scalar_speed(current_velocity.x,current_velocity.z)
+		mobf_calc_scalar_speed(movement_state.current_velocity.x,movement_state.current_velocity.z)
 		
 	
 	local max_speed = entity.data.movement.max_speed
@@ -693,24 +733,25 @@ function mgen_follow.checkspeed(entity)
 		max_speed = max_speed * 1.5
 	end
 
+	-- slow down if it's too fast
 	if (xzspeed > entity.data.movement.max_speed) then
 
-		local direction = mobf_calc_yaw(current_velocity.x,
-										current_velocity.z)
+		local direction = mobf_calc_yaw(movement_state.current_velocity.x,
+										movement_state.current_velocity.z)
 
 		--reduce speed to 90% of current speed
-		local new_speed = mobf_calc_vector_components(direction,xzspeed*0.9)
+		local new_speed = mobf_calc_vector_components(direction, xzspeed*0.9)
 
-		local current_accel = mobf_physics.getacceleration(entity)
+		movement_state.current_acceleration = mobf_physics.getacceleration(entity)
 
-		new_speed.y = current_velocity.y
-		mobf_physics.setvelocity(entity,new_speed)
-		mobf_physics.setacceleration(entity,{x=0,y=current_accel.y,z=0})
+		new_speed.y = movement_state.current_velocity.y
+		mobf_physics.setvelocity(entity, new_speed)
+		mobf_physics.setacceleration(entity,{x=0,y=movement_state.current_acceleration.y,z=0})
 
-		return true
+		return false
 	end
 
-	return false
+	return true
 end
 
 -------------------------------------------------------------------------------
