@@ -841,14 +841,20 @@ function mobf.register_entity(name, cur_graphics, mob)
 
 				return false
 				end,
+				
+			set_movement_target = function(entity, target, details)
+				if entity.dynamic_data.current_movement_gen ~= nil then
+					entity.dynamic_data.current_movement_gen.set_target(entity, target, details)
+				end
+				end,
 
 		--prepare permanent data
 		--NOTE this isn't called if a object is deleted
-		get_staticdata = function(self)
-			--add to mob offline storage
-			spawning.deactivate_mob(self.data.modname .. ":"  .. self.data.name,self.object:getpos())
-			return mobf_serialize_permanent_entity_data(self)
-			end,
+			get_staticdata = function(self)
+				--add to mob offline storage
+				spawning.deactivate_mob(self.data.modname .. ":"  .. self.data.name,self.object:getpos())
+				return mobf_serialize_permanent_entity_data(self)
+				end,
 
 		--custom variables for each mob
 			data                    = mob,
