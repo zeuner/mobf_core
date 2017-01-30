@@ -35,7 +35,7 @@ local param2_to_liquid_level = function(param2)
 end
 
 -------------------------------------------------------------------------------
--- @function [parent=#harvesting] init_dynamic_data(entity,now)
+-- @function [parent=#mobf_physics] init_dynamic_data(entity,now)
 --
 --! @brief initialize dynamic data required by harvesting
 --! @memberof harvesting
@@ -90,6 +90,37 @@ function mobf_physics.setacceleration(entity, accel)
 
 	entity.object:setacceleration(accel)
 	
+end
+
+-------------------------------------------------------------------------------
+-- @function [parent=#mobf_physics] getvelocity(entity)
+--
+--! @brief set acceleration for a specific entity object
+--! @memberof mobf_physics
+--
+--! @param entity to set acceleration
+--! @param acceleration
+-------------------------------------------------------------------------------
+function mobf_physics.getvelocity(entity)
+	
+	local velocity = entity.object:getvelocity()
+
+	return velocity
+end
+
+-------------------------------------------------------------------------------
+-- @function [parent=#mobf_physics] setvelocity(entity,accel)
+--
+--! @brief set acceleration for a specific entity object
+--! @memberof mobf_physics
+--
+--! @param entity to set acceleration
+--! @param acceleration
+-------------------------------------------------------------------------------
+function mobf_physics.setvelocity(entity, velocity)
+
+	entity.object:setvelocity(velocity)
+	entity.dynamic_data.physics.last_velocity = velocity
 end
 
 -------------------------------------------------------------------------------
@@ -156,7 +187,8 @@ function mobf_physics.update(self, dtime)
 end
 
 -------------------------------------------------------------------------------
--- name: is_floating(entity)
+-- @function [parent=#mobf_physics] is_floating(entity)
+--! @memberof mobf_physics
 --
 --! @brief provide information about mob floating
 --! @memberof mobf_physics
@@ -173,7 +205,8 @@ end
 
 
 -------------------------------------------------------------------------------
--- name: get_flow_accel(entity)
+-- @function [parent=#mobf_physics] get_flow_accel(entity)
+--! @memberof mobf_physics
 --
 --! @brief update flow acceleration within a given movement state
 --! @memberof mobf_physics
@@ -310,7 +343,7 @@ end
 
 
 -------------------------------------------------------------------------------
--- name: damage_handler(entity, now, basepos, state)
+-- @function [parent=#mobf_physics] damage_handler(entity, now, basepos, state)
 --
 --! @brief do damage based uppon physics
 --! @memberof mobf_physics
@@ -355,49 +388,63 @@ function mobf_physics.damage_handler(entity, now, basepos, state)
 		end
 	end
 	
+	local current_velocity = entity.object:getvelocity()
+	local speeddelta = 0
+	
 	-- handle damage resulting from high speed collisions
-	if not entity.data.generic.no_collision_damage then
-		local current_velocity = entity.object:getvelocity()
+	if entity.data.generic.collision_damage then
 	
 		if not entity.dynamic_data.physics.last_velocity then
 			entity.dynamic_data.physics.last_velocity = current_velocity
 		end
 	
-		local speeddelta = vector.distance(entity.dynamic_data.physics.last_velocity,current_velocity)
+		speeddelta = vector.distance(entity.dynamic_data.physics.last_velocity,current_velocity)
 		entity.dynamic_data.physics.last_velocity = current_velocity
 		
 		dbg_mobf.physics_lvl1("speeddelta: " .. speeddelta .. 
 			" state: " .. state .. " pos: " .. printpos(basepos))
+	else
+		if not entity.dynamic_data.physics.last_velocity then
+			entity.dynamic_data.physics.last_velocity = current_velocity
+		end
+	
+		speeddelta = math.abs(entity.dynamic_data.physics.last_velocity.y -current_velocity.y)
+		entity.dynamic_data.physics.last_velocity = current_velocity
 		
-		if speeddelta > collision_damage_threshold then
+		dbg_mobf.physics_lvl1("speeddelta: " .. speeddelta .. 
+			" state: " .. state .. " pos: " .. printpos(basepos))
+	end
+	
+	if speeddelta > collision_damage_threshold then
 		
-			local damage = 0
-			local current_health = entity.object:get_hp()
-			if state ~= "in_water" then
-				damage = speeddelta
-			end
-		
-			if damage > current_health then
-				entity.object:set_hp(0)
-			else
-				entity.object:set_hp(current_health - damage)
-			end
-		
-		
-			mobf_lifebar.set(entity.lifebar,entity.object:get_hp()/entity.hp_max)
+		local damage = 0
+		local current_health = entity.object:get_hp()
+		if state ~= "in_water" then
+			damage = speeddelta
+		end
+	
+		if damage > current_health then
+			entity.object:set_hp(0)
+		else
+			entity.object:set_hp(current_health - damage)
+		end
+	
+	
+		mobf_lifebar.set(entity.lifebar,entity.object:get_hp()/entity.hp_max)
 
-			if entity.data.sound ~= nil then
-				sound.play(basepos,entity.data.sound.hit);
-			end
+		if entity.data.sound ~= nil then
+			sound.play(basepos,entity.data.sound.hit);
+		end
 
-			if entity.object:get_hp() <= 0 then
-				mobf_lifebar.del(entity.lifebar)
-				entity:do_drop(nil)
-				spawning.remove(entity,"hit the ground or wall")
-				return false
-			end
+		if entity.object:get_hp() <= 0 then
+			mobf_lifebar.del(entity.lifebar)
+			entity:do_drop(nil)
+			spawning.remove(entity,"hit the ground or wall")
+			return false
 		end
 	end
+	
+	
 	
 	return true
 end
