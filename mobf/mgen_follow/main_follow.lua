@@ -132,7 +132,7 @@ function mgen_follow.handleteleport(entity,now,targetpos)
 				targetpos.y = targetpos.y - (entity.collisionbox[2] + 0.49)
 			end
 
-			entity.object:setvelocity({x=0,y=0,z=0})
+			mobf_physics.setvelocity(entity, {x=0,y=0,z=0})
 			mobf_physics.setacceleration(entity,{x=0,y=0,z=0})
 			entity.object:moveto(targetpos)
 			entity.dynamic_data.movement.last_next_to_target = now
@@ -244,7 +244,7 @@ function mgen_follow.check_target(entity, basepos, targetpos,
 					movement_generic.get_accel_to(targetpos,entity,true)
 					
 				local predicted_pos = movement_generic.predict_next_block(basepos,
-					entity.object:getvelocity(),accel_to_set)
+					mobf_physics.getvelocity(entity),accel_to_set)
 					
 				if mobf_calc_distance_2d(predicted_pos,targetpos) < distance then
 
@@ -297,7 +297,7 @@ function mgen_follow.check_target(entity, basepos, targetpos,
 			current_accel.Y ~= yaccel then
 
 			dbg_mobf.fmovement_lvl1("MOBF: next to target: " ..
-				printpos(entity.dynamic_data.movement.target) ..
+				dump(entity.dynamic_data.movement.target) ..
 				" stopping: " .. dump(entity.dynamic_data.movement.stop_at_target))
 			
 			mgen_follow.clear_acceleration(entity, entity.dynamic_data.movement.stop_at_target)
@@ -476,6 +476,7 @@ function mgen_follow.callback(entity,now, dstep)
 			dbg_mobf.fmovement_lvl3("MOBF:   have moving target")
 
 			if not mobf_is_pos(entity.dynamic_data.movement.target) then
+				dbg_mobf.fmovement_lvl3("MOBF:   " .. dump(entity.dynamic_data.movement.target))
 				targetpos = entity.dynamic_data.movement.target:getpos()
 			else
 				targetpos = entity.dynamic_data.movement.target
@@ -504,11 +505,8 @@ function mgen_follow.callback(entity,now, dstep)
 			--return
 		end
 
-
 		mgen_follow.check_target(entity, basepos, targetpos,
 			entity.dynamic_data.movement.max_distance or 1, now, follow_speedup, dstep)
-
-
 
 	else
 		--TODO evaluate if this is an error case
@@ -560,7 +558,7 @@ function mgen_follow.next_block_ok(entity,pos,acceleration,velocity)
 	local current_velocity = velocity
 
 	if current_velocity == nil then
-		current_velocity = entity.object:getvelocity()
+		current_velocity = mobf_physics.getvelocity(entity)
 	end
 
 	local predicted_pos = movement_generic.predict_next_block(pos,current_velocity,acceleration)
@@ -616,7 +614,6 @@ function mgen_follow.init_dynamic_data(entity,now)
 
 	local pos = entity.object:getpos()
 
-
 	local data = {
 			target = nil,
 			guardspawnpoint = false,
@@ -650,7 +647,7 @@ end
 -------------------------------------------------------------------------------
 function mgen_follow.checkspeed(entity)
 
-	local current_velocity = entity.object:getvelocity()
+	local current_velocity = mobf_physics.getvelocity(entity)
 
 	local xzspeed =
 		mobf_calc_scalar_speed(current_velocity.x,current_velocity.z)
@@ -673,7 +670,7 @@ function mgen_follow.checkspeed(entity)
 		local current_accel = mobf_physics.getacceleration(entity)
 
 		new_speed.y = current_velocity.y
-		entity.object:setvelocity(new_speed)
+		mobf_physics.setvelocity(entity,new_speed)
 		mobf_physics.setacceleration(entity,{x=0,y=current_accel.y,z=0})
 
 		return true
@@ -719,12 +716,12 @@ function mgen_follow.set_acceleration(entity,accel,speedup,pos)
 			"MOBF: \t acceleration " .. printpos(accel) ..
 			" is invalid try stopping mob")
 		
-		local current_velocity = entity.object:getvelocity()
+		local current_velocity = mobf_physics.getvelocity(entity)
 		current_velocity.y = 0
 
 		if mgen_follow.next_block_ok(entity,pos,{x=0,y=accel.y,z=0},current_velocity) then
 			accel = {x=0,y=accel.y,z=0}
-			entity.object:setvelocity(current_velocity)
+			mobf_physics.setvelocity(entity,current_velocity)
 			mobf_physics.setacceleration(entity,accel)
 			return false
 		end
@@ -750,16 +747,38 @@ end
 --! @param reached_callback function to call if target is reached, or some permanent failure happened
 -------------------------------------------------------------------------------
 function mgen_follow.set_target(entity, target, follow_speedup, max_distance, reached_callback, stop)
+
 	entity.dynamic_data.movement.target = target
-	entity.dynamic_data.movement.max_distance = max_distance
 	entity.dynamic_data.movement.follow_error_count = 0
+
+	if type(follow_speedup) == "table" then
+		local details = follow_speedup
+		
+		if details.stop ~= nil then
+			entity.dynamic_data.movement.stop_at_target = details.stop
+		end
+		
+		if target ~= nil and details.reached_callback ~= nil then
+			entity.dynamic_data.movement.reached_callback = details.reached_callback
+		end
+		
+		if details.max_target_distance ~= nil then
+			entity.dynamic_data.movement.max_distance = details.max_target_distance
+		end
 	
-	if stop ~= false then
-		entity.dynamic_data.movement.stop_at_target = true
+-- legacy mode to be removed!
+	else
+		entity.dynamic_data.movement.max_distance = max_distance
+		
+		if stop ~= false then
+			entity.dynamic_data.movement.stop_at_target = true
+		end
+		if target ~= nil then
+			entity.dynamic_data.movement.reached_callback = reached_callback
+		end
+		
 	end
-	if target ~= nil then
-		entity.dynamic_data.movement.reached_callback = reached_callback
-	end
+	
 	return true
 end
 
@@ -815,7 +834,7 @@ function mgen_follow.clear_acceleration(entity, velocity_too)
 	entity.object:setacceleration({ x=0, y=yaccel, z=0})
 	
 	if velocity_too == true then
-		entity.object:setvelocity({x=0, y=0, z=0})
+		mobf_physics.setvelocity(entity, {x=0, y=0, z=0})
 	end
 end
 
