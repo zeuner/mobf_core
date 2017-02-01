@@ -428,9 +428,11 @@ function quest_engine.event(entity, player, eventtype, parameter)
 		-- TODO check if event is relevant for state
 		local queststate = questdata.questdef[questdata.playerdata.current_state]
 		
-		if quest_engine.event_relevant(eventtype, queststate.action1, playername, true) or
+		if questdata.playerdata.current_state and
+			queststate and 
+			(quest_engine.event_relevant(eventtype, queststate.action1, playername, true) or
 			not quest_engine.event_relevant(eventtype, queststate.action2, playername, true) or
-			not quest_engine.event_relevant(eventtype, queststate.action3, playername, true) then
+			not quest_engine.event_relevant(eventtype, queststate.action3, playername, true)) then
 		
 			if questdata.playerdata.events == nil then
 				questdata.playerdata.events = {}
