@@ -749,7 +749,6 @@ function mobf.register_entity(name, cur_graphics, mob)
 					if self.on_punch_hooks[i](self,hitter,now,
 							time_from_last_punch, tool_capabilities, dir, damage) then
 						mobf_warn_long_fct(starttime,"onpunch_total","onpunch_total")
-						print("returning true on onpunch")
 						return true
 					end
 					mobf_warn_long_fct(starttime,"callback nr " .. i,

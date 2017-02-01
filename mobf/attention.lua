@@ -50,17 +50,17 @@ function attention.aggression(entity,now)
 	if entity.data.combat.starts_attack and
 		entity.dynamic_data.combat.target == nil and
 		current_state.state_mode ~= "combat" then
-		dbg_mobf.fighting_lvl3("MOBF: ".. entity.data.name .. " " .. now
-			.. " aggressive mob, is it time to attack?")
-		if entity.dynamic_data.combat.ts_last_aggression_chance + 1 < now then
-			dbg_mobf.fighting_lvl3("MOBF: ".. entity.data.name .. " " .. now
+
+		if entity.dynamic_data.combat.ts_last_aggression_chance + 1 < now and
+			fighting.shall_attack(entity, 0, false) then
+		
+			dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " " .. now
 				.. " lazzy time over try to find an enemy")
 			entity.dynamic_data.combat.ts_last_aggression_chance = now
 
-			if  entity.data.combat.angryness ~= nil and
-				math.random() < entity.data.combat.angryness then
+			if math.random() < entity.data.combat.angryness then
 
-				dbg_mobf.fighting_lvl3("MOBF: ".. entity.data.name .. " " .. now
+				dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " " .. now
 					.. " really is angry")
 				local target = fighting.get_target(entity)
 

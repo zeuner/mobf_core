@@ -97,13 +97,13 @@ function fighting.push_back(entity,dir)
 	new_pos.y = mob_pos.y
 	local line_of_sight = mobf_line_of_sight(mob_pos,new_pos)
 
-	dbg_mobf.fighting_lvl2("MOBF: trying to punch mob from " .. printpos(mob_pos)
+	dbg_mobf.fighting_lvl2("MOBF:     trying to punch mob from " .. printpos(mob_pos)
 		.. " to ".. printpos(new_pos))
 	if 	pos_valid and line_of_sight then
-		dbg_mobf.fighting_lvl2("MOBF: punching back ")
+		dbg_mobf.fighting_lvl2("MOBF:       ==> punching back ")
 		entity.object:moveto(new_pos)
 	else
-		dbg_mobf.fighting_lvl2("MOBF: not punching mob: " .. dump(pos_valid) .. " " ..dump(line_of_sight))
+		dbg_mobf.fighting_lvl2("MOBF:       not punching mob: " .. dump(pos_valid) .. " " ..dump(line_of_sight))
 	end
 end
 
@@ -120,13 +120,17 @@ end
 function fighting.dodamage(entity,attacker, kill_reason, damage)
 	local mob_pos = entity.object:getpos()
 	local new_hp = entity.object:get_hp() - damage
+	
+	dbg_mobf.fighting_lvl2("MOBF:     ".. entity.data.name
+				.. " entity hp " .. entity.object:get_hp())
 
 	--update lifebar
 	mobf_lifebar.set(entity.lifebar,new_hp / entity.hp_max)
 
 	-- make it die
 	if new_hp < 0.5 then
-
+		dbg_mobf.fighting_lvl2("MOBF:     ".. entity.data.name
+				.. " mob about to die do death handling " .. new_hp)
 		mobf_lifebar.del(entity.lifebar)
 
 		--call on kill callback and superseed normal on kill handling
@@ -139,17 +143,59 @@ function fighting.dodamage(entity,attacker, kill_reason, damage)
 			end
 
 			entity:do_drop(attacker)
-			
 			spawning.remove(entity, kill_reason)
 		else
-			dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name
+			dbg_mobf.fighting_lvl2("MOBF:     ".. entity.data.name
 				.. " custom on kill handler superseeds generic handling")
 		end
-		return
+		return false
+	else
+		dbg_mobf.fighting_lvl2("MOBF:     ".. entity.data.name
+				.. " has " .. new_hp .. " hp left")
 	end
+	
+	return true
 end
 
+-------------------------------------------------------------------------------
+-- @function [parent=#fighting] shall_attack(entity,attacker)
+--
+--! @brief handler for mob beeing hit
+--! @memberof fighting
+--
+--! @param entity mob being hit
+--! @param damage_taken damage to be applied by engine
+--! @param is_owner is mob attacked by owner
+-------------------------------------------------------------------------------
+function fighting.shall_attack(entity, damage_taken, is_owner)
 
+	if is_owner then
+		return false
+	end
+	
+	if entity.data.combat == nil then
+		return false
+	end
+	
+	if not entity.data.combat.can_fight then
+		return false
+	end
+	
+	if (entity.object:get_hp() - damage_taken) < entity.data.generic.base_health/3 then
+		return false
+	end
+	
+	if entity.data.combat.angryness == nil then
+		return false
+	end
+	
+	if entity.data.combat.angryness <= 0 then
+		return false
+	end
+
+	return true
+	
+end
 -------------------------------------------------------------------------------
 -- @function [parent=#fighting] hit(entity,attacker)
 --
@@ -164,7 +210,7 @@ function fighting.hit(entity, attacker, now, time_from_last_punch, tool_capabili
 	mobf_assert_backtrace(entity ~= nil)
 	mobf_assert_backtrace(attacker ~= nil)
 	
-	dbg_mobf.fighting_lvl3("MOBF: ".. entity.data.name .. " got hit.")
+	dbg_mobf.fighting_lvl3("MOBF: >>fighting.hit ".. entity.data.name .. " got hit. damage=" .. damage)
 	
 	local tool = nil
 	local playername = nil
@@ -180,8 +226,8 @@ function fighting.hit(entity, attacker, now, time_from_last_punch, tool_capabili
 	if entity.data.generic.on_hit_callback ~= nil and
 			entity.data.generic.on_hit_callback(entity, attacker, tool) == true
 		then
-		dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " custom on hit handler superseeds generic handling")
-		return
+		dbg_mobf.fighting_lvl2("MOBF:     ".. entity.data.name .. " custom on hit handler superseeds generic handling")
+		return false
 	end
 
 	--get some base information
@@ -200,12 +246,12 @@ function fighting.hit(entity, attacker, now, time_from_last_punch, tool_capabili
 			
 			-- rotate if not fighting atm
 			if entity.dynamic_data.state.current ~= "combat" then
-				dbg_mobf.fighting_lvl3("MOBF: ".. entity.data.name .. " punched by owner \"" ..
+				dbg_mobf.fighting_lvl3("MOBF:     ".. entity.data.name .. " punched by owner \"" ..
 				playername .. "\" rotating")
 				local current_yaw = graphics.getyaw(entity)
 				graphics.setyaw(entity, current_yaw + math.pi/4)
 			end
-		
+			dbg_mobf.fighting_lvl3("MOBF: <<fighting.hit spawner")
 			return true
 		end
 	end
@@ -241,21 +287,20 @@ function fighting.hit(entity, attacker, now, time_from_last_punch, tool_capabili
 		entity.object:set_properties(new_props)
 	end
 
-	--push mob back
+	-- push mob back
 	fighting.push_back(entity,dir)
 	
-	--cause damage to be evaluated
-	fighting.dodamage(entity, attacker, "killed", damage)
+	-- do damage and check if we need to continue handling
+	if not fighting.dodamage(entity, attacker, "killed", damage) then
+		dbg_mobf.fighting_lvl3("MOBF: <<fighting.hit died")
+		return false
+	end
 
 	--dbg_mobf.fighting_lvl2("MOBF: attack chance is ".. entity.data.combat.angryness)
 	-- fight back
-	if entity.data.combat ~= nil and
-		(	entity.data.combat.can_fight or
-			(entity.data.combat.angryness ~= nil and entity.data.combat.angryness > 0)
-
-		) and
-		(entity.object:get_hp() - damage) > (entity.data.generic.base_health/3) and
-		not attacker_is_owner then
+	
+	if fighting.shall_attack(entity, damage, attacker_is_owner) then
+		dbg_mobf.fighting_lvl3("MOBF:     fighting back")
 
 		--face attacker
 		graphics.look_to_object(entity, attacker)
@@ -267,9 +312,13 @@ function fighting.hit(entity, attacker, now, time_from_last_punch, tool_capabili
 			fighting.set_target(entity,attacker)
 		end
 	else
+		dbg_mobf.fighting_lvl3("MOBF:     running away")
 		--make non agressive animals run away
 		fighting.run_away(entity,dir,attacker)
 	end
+	
+	dbg_mobf.fighting_lvl3("MOBF: <<fighting.hit ")
+	return false
 end
 
 -------------------------------------------------------------------------------
@@ -819,7 +868,7 @@ function fighting.self_destruct_trigger(entity,distance,now)
 		--trigger self destruct
 		if distance <= entity.data.combat.self_destruct.range and
 			entity.dynamic_data.combat.ts_self_destruct_triggered == -1 then
-			dbg_mobf.fighting_lvl2("MOBF: self destruct triggered")
+			dbg_mobf.fighting_lvl2("MOBF:     self destruct triggered")
 			entity.dynamic_data.combat.ts_self_destruct_triggered = now
 		end
 	end
@@ -939,14 +988,16 @@ function fighting.self_destruct_handler(entity,now)
 
 		local pos = entity.object:getpos()
 
-		dbg_mobf.fighting_lvl1("MOBF: checking for self destruct imminent")
+		-- way to noisy
+		--dbg_mobf.fighting_lvl1("MOBF: checking for self destruct imminent")
+		
 		--do self destruct
 		if 	entity.dynamic_data.combat.ts_self_destruct_triggered > 0 and
 			entity.dynamic_data.combat.ts_self_destruct_triggered +
 			entity.data.combat.self_destruct.delay
 			<= now then
 
-			dbg_mobf.fighting_lvl2("MOBF: executing self destruct")
+			dbg_mobf.fighting_lvl2("MOBF:     executing self destruct")
 
 			if entity.data.sound ~= nil then
 				sound.play(pos,entity.data.sound.self_destruct);
