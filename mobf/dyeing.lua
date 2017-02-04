@@ -22,9 +22,7 @@ mobf_assert_backtrace(not core.global_exists("mobf_dyeing"))
 --! @class mobf_dyeing
 --! @brief mobf_dyeing features
 mobf_dyeing = {}
-mobf_dyeing.mode = "colorize"
--- used once minetest has merged this feature
---mobf_dyeing.mode = "paint"
+mobf_dyeing.mode = "multiply"
 
 --!@}
 
