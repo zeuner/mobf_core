@@ -1345,13 +1345,13 @@ function mobf.drop_kill_result(entity, killer)
 			end
 		end
 	else
-		return
+		return nil
 	end
 	
 	dbg_mobf.mobf_core_lvl2("drop will be: " .. dump(result) .. " original was: " .. dump(entity.data.generic.kill_result))
 	
 	if #result == 0 then
-		return
+		return nil
 	end
 	
 	for i=1,#result, 1 do
@@ -1367,6 +1367,8 @@ function mobf.drop_kill_result(entity, killer)
 			minetest.add_item(entity.object:getpos(),result[i])
 		end
 	end
+	
+	return result
 end
 
 -------------------------------------------------------------------------------
