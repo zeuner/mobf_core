@@ -142,8 +142,11 @@ function fighting.dodamage(entity,attacker, kill_reason, damage)
 				sound.play(mob_pos,entity.data.sound.die);
 			end
 
-			entity:do_drop(attacker)
+			local drop_result = entity:do_drop(attacker)
 			spawning.remove(entity, kill_reason)
+			
+			-- todo get tool used for kill
+			quest_engine.event(entity, attacker, "event_killed", { mob=entity.name, tool=nil, result=drop_result })
 		else
 			dbg_mobf.fighting_lvl2("MOBF:     ".. entity.data.name
 				.. " custom on kill handler superseeds generic handling")

@@ -43,3 +43,29 @@ quest_engine.register_event(
 		end
 	}
 )
+
+quest_engine.register_event(
+	"event_killed",
+	{
+		cbf = function(eventdef, parameter)
+			if (eventdef.mob == nil or eventdef.mob == parameter.mob) and
+				(eventdef.tool == nil or eventdef.name == parameter.tool) and 
+				(eventdef.result == nil or eventdef.result == parameter.tool) then
+				return true
+			end
+			
+			-- pattern matching for mobname
+			if eventdef.mob == nil and string.find(eventdef.mob,"*") then
+				local mobfilter = string.sub(eventdef.mob, -2, 1)
+				print("mobfilter=" .. mobfilter)
+				if (string.find(parameter.mob, mobfilter) == 1) and
+					(eventdef.tool == nil or eventdef.name == parameter.tool) and 
+					(eventdef.result == nil or eventdef.result == parameter.tool) then
+					return true
+				end
+			end
+			
+			return false
+		end
+	}
+)
