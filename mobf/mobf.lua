@@ -79,22 +79,21 @@ function mobf.init_on_step_callbacks(entity,now)
 		.. " entity=" .. tostring(entity))
 	for i = 1, #mobf.on_step_callbacks , 1 do
 		if mobf.on_step_callbacks[i].configcheck(entity) then
-			dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ") enabling callback "
-				.. mobf.on_step_callbacks[i].name)
+			dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ") ENABLING callback \""
+				.. mobf.on_step_callbacks[i].name .. "\"")
 			table.insert(entity.on_step_hooks,mobf.on_step_callbacks[i].handler)
 			if type(mobf.on_step_callbacks[i].init) == "function" then
-				dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ")"
-					.." executing init function for "
-					.. mobf.on_step_callbacks[i].name)
+				dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ")"
+					.."\t==> calling init function")
 				mobf.on_step_callbacks[i].init(entity,now)
 			else
-				dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ")"
-					.." no init function defined")
+				dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ")"
+					.."\tskipping init function (not defined)")
 			end
 		else
-			dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ") callback "
+			dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ") DISABLING callback \""
 				.. mobf.on_step_callbacks[i].name
-				.. " disabled due to config check")
+				.. "\" (config check)")
 		end
 	end
 
@@ -168,23 +167,22 @@ function mobf.init_on_punch_callbacks(entity,now)
 	for i = 1, #mobf.on_punch_callbacks , 1 do
 		if mobf.on_punch_callbacks[i].configcheck(entity) and
 			type(mobf.on_punch_callbacks[i].handler) == "function" then
-			dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ") enabling callback "
-				.. mobf.on_punch_callbacks[i].name)
+			dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ") ENABLING callback \""
+				.. mobf.on_punch_callbacks[i].name .. "\"")
 			table.insert(entity.on_punch_hooks,mobf.on_punch_callbacks[i].handler)
 
 			if type(mobf.on_punch_callbacks[i].init) == "function" then
-				dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ")"
-					.." executing init function for "
-					.. mobf.on_punch_callbacks[i].name)
+				dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ")"
+					.."\t==> calling init function")
 				mobf.on_punch_callbacks[i].init(entity,now)
 			else
-				dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ")"
-					.." no init function defined")
+				dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ")"
+					.."skipping init function (not defined)")
 			end
 		else
-			dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ") callback "
+			dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ") DISABLING callback \""
 				.. mobf.on_punch_callbacks[i].name
-				.. " disabled due to config check")
+				.. "\" (config check)")
 		end
 	end
 end
@@ -208,23 +206,22 @@ function mobf.init_on_rightclick_callbacks(entity,now)
 	for i = 1, #mobf.on_rightclick_callbacks , 1 do
 		if mobf.on_rightclick_callbacks[i].configcheck(entity) and
 			type(mobf.on_rightclick_callbacks[i].handler) == "function" then
-			dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ") enabling callback "
-				.. mobf.on_rightclick_callbacks[i].name)
+			dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ") ENABLING callback \""
+				.. mobf.on_rightclick_callbacks[i].name .."\"")
 			table.insert(entity.on_rightclick_hooks,mobf.on_rightclick_callbacks[i])
 
 			if type(mobf.on_rightclick_callbacks[i].init) == "function" then
-				dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ")"
-					.. " executing init function for "
-					.. mobf.on_rightclick_callbacks[i].name)
+				dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ")"
+					.. "\t==> calling init function")
 				mobf.on_rightclick_callbacks[i].init(entity,now)
 			else
-				dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ")"
-					.. "no init function defined")
+				dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ")"
+					.. "\t skipping init function (not defined)")
 			end
 		else
-			dbg_mobf.mobf_core_lvl2("MOBF:	(" .. i .. ") callback "
+			dbg_mobf.mobf_core_lvl2("MOBF:\t(" .. i .. ") DISABLING callback \""
 				.. mobf.on_rightclick_callbacks[i].name
-				.. " disabled due to config check")
+				.. "\" (config check)")
 		end
 	end
 	
@@ -717,6 +714,7 @@ function mobf.register_entity(name, cur_graphics, mob)
 					--dynamic modules
 					for i = 1, #self.on_step_hooks, 1 do
 						local cb_starttime = mobf_get_time_ms()
+						--dbg_mobf.mobf_core_lvl1("MOBF: on_step: calling hook #" .. i)
 						--check return value if on_step hook tells us to stop any other processing
 						if self.on_step_hooks[i](self,now,self.current_dtime) == false then
 							dbg_mobf.mobf_core_lvl1("MOBF: on_step: " .. self.data.name
