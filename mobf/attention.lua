@@ -39,53 +39,98 @@ attention = {}
 -------------------------------------------------------------------------------
 function attention.aggression(entity,now)
 
+	dbg_mobf.attention_lvl1("MOBF: ".. entity.data.name .. " legacy agression handling")
+	
 	--if no combat data is specified don't do anything
 	if entity.data.combat == nil then
 		return
 	end
+	
 
 	local current_state = entity.dynamic_data.state.current
+	
+	if not entity.data.combat.starts_attack then
+		dbg_mobf.attention_lvl1("MOBF: \t<< mob doesn't start attack at all BUG?!")
+		return
+	end
+	
+	if current_state.state_mode == "combat" and entity.dynamic_data.combat.target ~= nil then
+		dbg_mobf.attention_lvl1("MOBF: \t<< mob already fighting")
+		return
+	end
+	
+	if not fighting.shall_attack(entity, 0, false) then
+		dbg_mobf.attention_lvl1("MOBF: \t<< mob in no state to fight")
+		return
+	end
 
-	--mob is specified as self attacking
-	if entity.data.combat.starts_attack and
-		entity.dynamic_data.combat.target == nil and
-		current_state.state_mode ~= "combat" then
+	if entity.dynamic_data.combat.target ~= nil then
+		dbg_mobf.attention_lvl1("MOBF: \t<< mob already has a target")
+		return
+	end
 
-		if entity.dynamic_data.combat.ts_last_aggression_chance + 1 < now and
-			fighting.shall_attack(entity, 0, false) then
+	if entity.dynamic_data.combat.ts_last_aggression_chance + 1 > now then
+		dbg_mobf.attention_lvl1("MOBF: \t<< already tried to attack someone not long ago")
+		return
+	end
 		
-			dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " " .. now
-				.. " lazzy time over try to find an enemy")
-			entity.dynamic_data.combat.ts_last_aggression_chance = now
+	dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " " .. now
+		.. " lazzy time over try to find an enemy")
+		
+	entity.dynamic_data.combat.ts_last_aggression_chance = now
 
-			if math.random() < entity.data.combat.angryness then
+	if math.random() > entity.data.combat.angryness then
+		dbg_mobf.attention_lvl1("MOBF: \t<< lucky enemy we missed chance to attack")
+		return
+	end
 
-				dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " " .. now
-					.. " really is angry")
-				local target = fighting.get_target(entity)
+	dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " " .. now
+		.. " really is angry")
+	local target = fighting.get_target(entity)
+	
 
-				if target ~= nil then
+	if target == nil then
+		dbg_mobf.attention_lvl1("MOBF: \t<< didn't find anyone to attack")
+		return
+	end
 
-					if target ~= entity.dynamic_data.combat.target then
+	entity.dynamic_data.combat.target = target
 
-						entity.dynamic_data.combat.target = target
+	fighting.switch_to_combat_state(entity,now,target)
 
-						fighting.switch_to_combat_state(entity,now,target)
+	local targetname = fighting.get_target_name(target)
 
-						local targetname = fighting.get_target_name(target)
+	dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " "
+				.. now .. " starting attack at player: "
+				..targetname)
+				
+	minetest.log(LOGLEVEL_INFO,
+			"MOBF: starting attack at player "..targetname)
+end
 
-						dbg_mobf.fighting_lvl2("MOBF: ".. entity.data.name .. " "
-									.. now .. " starting attack at player: "
-									..targetname)
-						minetest.log(LOGLEVEL_INFO,
-								"MOBF: starting attack at player "..targetname)
-					end
-				end
-			end
+-------------------------------------------------------------------------------
+-- @function [parent=#attention] reduce_attention(entity)
+--
+--! @brief calculate attenntion level for mob mob
+--! @memberof attention
+--
+--! @param entity mob to do action
+-------------------------------------------------------------------------------
+function attention.reduce_attention(entity)
+
+	local reduction_value      = 0.1
+	
+	dbg_mobf.attention_lvl3("MOBF:     reduce_attantion for  " .. 
+		#entity.dynamic_data.attention.watched_objects .. " objects")
+	for k,v in pairs(entity.dynamic_data.attention.watched_objects) do
+		if v.value > reduction_value then
+			v.value = v.value - reduction_value
+
+		else
+			entity.dynamic_data.attention.watched_objects[k] = nil
 		end
 	end
 end
-
 -------------------------------------------------------------------------------
 -- @function [parent=#attention] callback(entity)
 --
@@ -97,9 +142,11 @@ end
 -------------------------------------------------------------------------------
 function attention.callback(entity,now)
 
+	dbg_mobf.attention_lvl1("MOBF: ".. entity.data.name .. " agression handling")
+
 	--do legacy code
 	if entity.data.attention == nil then
-		attention.aggression(entity,now)
+		attention.aggression(entity, now)
 		return
 	end
 
@@ -113,7 +160,6 @@ function attention.callback(entity,now)
 	mobf_assert_backtrace(entity.dynamic_data.attention ~= nil)
 
 	--set default values
-	local reduction_value      = 0.1
 	local attention_distance   = 5
 	local target_switch_offset = 0.5
 
@@ -126,37 +172,31 @@ function attention.callback(entity,now)
 	end
 
 	--reduce attention level for all objects
-	for k,v in pairs(entity.dynamic_data.attention.watched_objects) do
-		if v.value > reduction_value then
-			v.value = v.value - reduction_value
-			dbg_mobf.attention_lvl3("MOBF: preserving " .. k ..
-				" for watchlist new value: " .. v.value)
-		else
-			entity.dynamic_data.attention.watched_objects[k] = nil
-			dbg_mobf.attention_lvl3("MOBF: removing " .. k .. " from watchlist")
-		end
-	end
+	attention.reduce_attention(entity)
 
 	local new_objecttable = entity.dynamic_data.attention.watched_objects
 
-	entity.dynamic_data.attention.watched_objects = new_objecttable
 	local own_pos = entity.object:getpos()
 
 	--get list of all objects in attention range
 	local objectlist =
 		minetest.get_objects_inside_radius(own_pos,attention_distance)
+	dbg_mobf.attention_lvl1("MOBF:     current object count: " .. 
+		#entity.dynamic_data.attention.watched_objects .. " number of objects within " .. 
+		attention_distance .. " nodes: " .. #objectlist)
 
 	if #objectlist > 0 then
 		for i = 1 , #objectlist, 1 do
 			local continue = true
 
-			dbg_mobf.attention_lvl3("MOBF: checking " .. tostring(objectlist[i]))
+			dbg_mobf.attention_lvl1("MOBF:     checking " .. tostring(objectlist[i]))
 
 			if not objectlist[i]:is_player() then
 				local lua_entity = objectlist[i]:get_luaentity()
 
 				if lua_entity ~= nil and
 					not lua_entity.draws_attention then
+					dbg_mobf.attention_lvl1("MOBF:         --> " .. entity.name .. " doesn't draw attention")
 					continue = false
 				end
 			end
@@ -216,33 +256,32 @@ function attention.callback(entity,now)
 						end
 					else
 						dbg_mobf.attention_lvl2(
-							"MOBF: unable to get yaw for object: "  ..table_id)
+							"MOBF:         unable to get yaw for object: "  ..table_id)
 					end
 				end
 
 				--calculate new value
-
 				local sum_values = 0;
 
 				if hear_addon then
-					dbg_mobf.attention_lvl3("MOBF: " .. table_id .. " within hear distance")
+					dbg_mobf.attention_lvl1("MOBF:         " .. table_id .. " within hear distance")
 					sum_values = sum_values + entity.data.attention.hear_distance_value
 				end
 
 				if own_view_addon then
-					dbg_mobf.attention_lvl3("MOBF: " .. table_id .. " in view")
+					dbg_mobf.attention_lvl1("MOBF:         " .. table_id .. " in view")
 					sum_values = sum_values + entity.data.attention.own_view_value
 				end
 
 				if remote_view_addon then
-					dbg_mobf.attention_lvl3("MOBF: " .. table_id .. " looks towards mob")
+					dbg_mobf.attention_lvl1("MOBF:         " .. table_id .. " looks towards mob")
 					sum_values = sum_values + entity.data.attention.remote_view_value
 				end
 
 				sum_values = sum_values + entity.data.attention.attention_distance_value
 
 				if new_objecttable[table_id] == nil then
-					dbg_mobf.attention_lvl3("MOBF: " .. table_id .. " unknown adding new entry")
+					dbg_mobf.attention_lvl1("MOBF:         " .. table_id .. " unknown adding new entry")
 					new_objecttable[table_id] = { value = 0 }
 				end
 
@@ -254,7 +293,7 @@ function attention.callback(entity,now)
 					new_objecttable[table_id].value = entity.data.attention.attention_max
 				end
 
-				dbg_mobf.attention_lvl3("MOBF: adding " .. sum_values ..
+				dbg_mobf.attention_lvl1("MOBF:         adding " .. sum_values ..
 											" to " .. table_id ..
 											" new value " ..
 											new_objecttable[table_id].value)
@@ -277,7 +316,7 @@ function attention.callback(entity,now)
 					top_attention_enemy = objectlist[i]
 				end
 			end
-		end
+		end		
 	end
 
 	--check if top attention exceeds current + offset
@@ -286,7 +325,7 @@ function attention.callback(entity,now)
 		entity.dynamic_data.attention.most_relevant_target = top_attention_object
 		current_attention_value = top_attention_value
 	end
-	dbg_mobf.attention_lvl3("MOBF: value=" .. current_attention_value .. " attack_threshold=" ..
+	dbg_mobf.attention_lvl1("MOBF: value=" .. current_attention_value .. " attack_threshold=" ..
 		dump(entity.data.attention.attack_threshold) .. " watch_threshold=" ..
 		dump(entity.data.attention.watch_threshold))
 
@@ -418,4 +457,27 @@ function attention.is_enemy(entity,object)
 	end
 
 	return false
+end
+
+-------------------------------------------------------------------------------
+-- @function [parent=#attention] configcheck(entity, object)
+--
+--! @brief check if attention handling is required for this mob
+--! @memberof attention
+--
+--! @param entity mob to check if it does do attention handling
+--! @return true/false
+-------------------------------------------------------------------------------
+function attention.configcheck(entity)
+
+	local attention_configured = (entity.data.attention ~= nil)
+	local combat_configured = (entity.data.combat ~= nil)
+	local legacy_agression = (entity.data.combat ~= nil) and (entity.data.combat.starts_attack)
+
+	dbg_mobf.attention_lvl1("MOBF: " .. entity.data.name .. 
+				" attention configured: " .. dump(attention_configured) .. 
+				" combat configured: " .. dump(combat_configured) ..
+				" legacy agression handling: " .. dump(legacy_agression))
+				
+	return (attention_configured and combat_configured) or legacy_agression
 end

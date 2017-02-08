@@ -484,7 +484,7 @@ function mobf_debug.rightclick_callback(entity,player)
 		print("MOBF: \tCurrent combat target:       " .. fighting.get_target_name(entity.dynamic_data.combat.target))
 	end
 	if entity.dynamic_data.attention ~= nil then
-		print("MOBF: \t Current attention table:")
+		print("MOBF: \tCurrent attention table (" .. #entity.dynamic_data.attention.watched_objects .. " objects):")
 		for k,v in pairs(entity.dynamic_data.attention.watched_objects) do
 			print("MOBF: \t\t " .. k .. ": " .. v.value)
 		end
@@ -497,6 +497,8 @@ function mobf_debug.rightclick_callback(entity,player)
 			end
 			print("MOBF: \tTop attention object:       " .. attention_name)
 		end
+	else
+		print("MOBF: \tLegacy agression handling")
 	end
 	
 	if entity.dynamic_data.movement and entity.dynamic_data.movement.follow_stuck_counter ~= nil then

@@ -258,13 +258,7 @@ function mobf_init_modules()
 			name = "attention",
 			handler = attention.callback,
 			init = attention.init_dynamic_data,
-			configcheck = function(entity)
-					if entity.data.attention ~= nil or
-						entity.data.combat ~= nil then
-						return true
-					end
-					return false
-				end
+			configcheck = attention.configcheck
 				})
 
 	--workaround for shortcomings in spawn algorithm
