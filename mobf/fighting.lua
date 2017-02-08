@@ -180,7 +180,7 @@ function fighting.shall_attack(entity, damage_taken, is_owner)
 		return false
 	end
 	
-	if not entity.data.combat.can_fight then
+	if not entity.data.combat.starts_attack then
 		return false
 	end
 	
