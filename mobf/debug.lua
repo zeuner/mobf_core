@@ -378,6 +378,10 @@ end
 ------------------------------------------------------------------------------
 function mobf_debug.rightclick_callback(entity,player)
 	local basepos  = entity.getbasepos(entity)
+	if (nil == basepos) then
+		print("MOBF: \tCould not determine position")
+		return false
+	end
 	local lifetime = mobf_get_current_time() - entity.dynamic_data.spawning.original_spawntime
 	print("MOBF: " .. entity.data.name .. " " .. tostring(entity) .. " is alive for " .. lifetime .. " seconds")
 	print("MOBF: \tAbsolute spawntime:          " .. entity.dynamic_data.spawning.original_spawntime)
